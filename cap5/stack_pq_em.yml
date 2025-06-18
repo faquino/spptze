@@ -24,6 +24,8 @@ services:
       - ./mosquitto/config:/mosquitto/config
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
+    environment:
+      - TZ=Europe/Madrid
 
 volumes:
   db-data:
