@@ -1,0 +1,29 @@
+# Configurar entorno mediante archivo .env
+services:
+  db:
+    image: postgres:17.5
+    container_name: spptze-postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - ${DB_PORT:-5432}:5432
+
+  mqtt:
+    image: eclipse-mosquitto:2.0.21
+    container_name: spptze-mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+
+volumes:
+  db-data:

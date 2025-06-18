@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPPTZE - Nodo de visualización</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .header {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .time {
+            font-size: 1.1rem;
+            margin-top: 10px;
+            opacity: 0.8;
+        }
+        
+        .calls-container {
+            padding: 30px;
+            height: calc(100vh - 140px);
+            overflow: hidden;
+        }
+        
+        .calls-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .calls-list {
+            max-height: calc(100vh - 240px);
+            overflow: hidden;
+        }
+        
+        .call {
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            margin: 15px 0;
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border-left: 6px solid #2563eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            transform: translateX(0);
+        }
+        
+        .call.new {
+            animation: slideIn 0.8s ease-out, highlight 3s ease-out;
+            border-left-color: #dc2626;
+        }
+        
+        .call.old {
+            opacity: 0.7;
+            transform: scale(0.98);
+        }
+        
+        .ticket {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #2563eb;
+            min-width: 120px;
+        }
+        
+        .call.new .ticket {
+            color: #dc2626;
+        }
+        
+        .content {
+            font-size: 1.4rem;
+            flex-grow: 1;
+            margin-left: 20px;
+        }
+        
+        .timestamp {
+            font-size: 0.9rem;
+            color: #666;
+            opacity: 0.8;
+        }
+        
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.4);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.disconnected {
+            background: #ef4444;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            opacity: 0.7;
+        }
+        
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state p {
+            font-size: 1.1rem;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes highlight {
+            0% { background: rgba(252, 211, 77, 0.9); }
+            20% { background: rgba(252, 211, 77, 0.7); }
+            100% { background: rgba(255,255,255,0.95); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Responsive para diferentes tamaños de pantalla */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .call { flex-direction: column; text-align: center; }
+            .ticket { min-width: auto; margin-bottom: 10px; }
+            .content { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Sistema de Llamadas</h1>
+        <div class="subtitle">Servicio de Cardiología - Planta 2</div>
+        <div class="time" id="current-time"></div>
+    </div>
+
+    <div class="calls-container">
+        <div class="calls-title">Últimas Llamadas</div>
+        <div class="calls-list" id="calls-list">
+            <div class="empty-state">
+                <h3>Esperando llamadas...</h3>
+                <p>Las nuevas llamadas aparecerán aquí</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="connection-status">
+            <div class="status-dot" id="connection-dot"></div>
+            <span id="connection-text">Conectado al servidor</span>
+        </div>
+        <div class="node-info">
+            Nodo: NODE_CARDIO_WAIT | SPPTZE v1.0
+        </div>
+        <div class="last-update">
+            Última actualización: <span id="last-update">--:--:--</span>
+        </div>
+    </div>
+
+    <script>
+        class SPPTZEDisplay {
+            constructor() {
+                this.calls = [];
+                this.maxCalls = 8;
+                this.apiBase = '/api/v1'; // Usar ruta relativa
+                this.updateInterval = 3000; // 3 segundos para el demo
+                this.connected = false;
+                this.nodeId = 'NODE_CARDIO_WAIT'; // Simular nodo específico
+                
+                this.init();
+            }
+            
+            init() {
+                this.updateTime();
+                this.startPolling();
+                
+                // Actualizar tiempo cada segundo
+                setInterval(() => this.updateTime(), 1000);
+                
+                // Simular llamadas para demo si no hay servidor
+                setTimeout(() => this.loadDemoData(), 3000);
+            }
+            
+            updateTime() {
+                const now = new Date();
+                document.getElementById('current-time').textContent = 
+                    now.toLocaleTimeString('es-ES');
+            }
+            
+            async startPolling() {
+                try {
+                    await this.fetchMessages();
+                    this.connected = true;
+                    this.updateConnectionStatus();
+                    
+                    // Continuar polling
+                    setTimeout(() => this.startPolling(), this.updateInterval);
+                } catch (error) {
+                    console.error('Error fetching messages:', error);
+                    this.connected = false;
+                    this.updateConnectionStatus();
+                    
+                    // Reintentar en 5 segundos
+                    setTimeout(() => this.startPolling(), 5000);
+                }
+            }
+            
+            async fetchMessages() {
+                const response = await fetch(`${this.apiBase}/messages?channel=calls&nodeId=${this.nodeId}&limit=${this.maxCalls}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                this.updateCalls(data.messages || []);
+                this.updateLastUpdate();
+            }
+            
+            updateCalls(newCalls) {
+                // Detectar nuevas llamadas
+                const newCallIds = new Set(newCalls.map(c => c.id));
+                const currentCallIds = new Set(this.calls.map(c => c.id));
+                
+                const hasNewCalls = newCalls.some(call => !currentCallIds.has(call.id));
+                
+                this.calls = newCalls.map((call, index) => ({
+                    ...call,
+                    isNew: !currentCallIds.has(call.id),
+                    age: index > 5 ? 'old' : 'current'
+                }));
+                
+                if (hasNewCalls) {
+                    this.playNotificationSound();
+                }
+                
+                this.renderCalls();
+            }
+            
+            renderCalls() {
+                const container = document.getElementById('calls-list');
+                
+                if (this.calls.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No hay llamadas pendientes</h3>
+                            <p>Las nuevas llamadas aparecerán aquí automáticamente</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = this.calls.map((call, index) => `
+                    <div class="call ${call.isNew ? 'new' : ''} ${call.age}">
+                        <div class="ticket">${call.ticket}</div>
+                        <div class="content">${call.content}</div>
+                        <div class="timestamp">${this.formatTime(call.timestamp)}</div>
+                    </div>
+                `).join('');
+                
+                // Limpiar flag de nuevas después de renderizar
+                setTimeout(() => {
+                    this.calls.forEach(call => call.isNew = false);
+                }, 1000);
+            }
+            
+            formatTime(timestamp) {
+                return new Date(timestamp).toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+            
+            updateConnectionStatus() {
+                const dot = document.getElementById('connection-dot');
+                const text = document.getElementById('connection-text');
+                
+                if (this.connected) {
+                    dot.className = 'status-dot';
+                    text.textContent = 'Conectado al servidor';
+                } else {
+                    dot.className = 'status-dot disconnected';
+                    text.textContent = 'Desconectado - Reintentando...';
+                }
+            }
+            
+            updateLastUpdate() {
+                document.getElementById('last-update').textContent = 
+                    new Date().toLocaleTimeString('es-ES');
+            }
+            
+            playNotificationSound() {
+                // En una implementación real, reproduciría un sonido
+                console.log('Nueva llamada - sonido de notificación');
+            }
+            
+            // Datos de demo para cuando no hay servidor
+            loadDemoData() {
+                if (this.calls.length === 0 && !this.connected) {
+                    console.log('Cargando datos de demo...');
+                    this.updateCalls([
+                        {
+                            id: 'DEMO_1',
+                            ticket: 'A047',
+                            content: 'Turno A047 - Consulta 3',
+                            timestamp: new Date().toISOString(),
+                            target: 'CARDIO'
+                        },
+                        {
+                            id: 'DEMO_2', 
+                            ticket: 'B023',
+                            content: 'Turno B023 - Consulta 4',
+                            timestamp: new Date(Date.now() - 60000).toISOString(),
+                            target: 'CARDIO'
+                        }
+                    ]);
+                    
+                    // Simular nueva llamada después de 5 segundos
+                    setTimeout(() => {
+                        if (!this.connected) {
+                            this.updateCalls([
+                                {
+                                    id: 'DEMO_3',
+                                    ticket: 'C015',
+                                    content: 'Turno C015 - Consulta 3',
+                                    timestamp: new Date().toISOString(),
+                                    target: 'CARDIO'
+                                },
+                                ...this.calls
+                            ]);
+                        }
+                    }, 5000);
+                }
+            }
+        }
+        
+        // Inicializar la aplicación cuando se carga la página
+        document.addEventListener('DOMContentLoaded', () => {
+            window.display = new SPPTZEDisplay();
+            console.log('SPPTZE Display iniciado');
+        });
+    </script>
+</body>
+</html>

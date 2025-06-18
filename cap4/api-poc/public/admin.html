@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPPTZE - Panel de Administración</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8fafc;
+            color: #334155;
+        }
+        
+        .header {
+            background: #1e293b;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header .subtitle {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: #f1f5f9;
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #2563eb;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .status-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .status-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-online {
+            color: #059669;
+            font-weight: 500;
+        }
+        
+        .status-offline {
+            color: #dc2626;
+            font-weight: 500;
+        }
+        
+        .message-item {
+            background: #f8fafc;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .message-ticket {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .message-content {
+            font-size: 0.9rem;
+            margin: 0.25rem 0;
+        }
+        
+        .message-meta {
+            font-size: 0.8rem;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .alert {
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>SPPTZE - Panel de Administración</h1>
+        <div class="subtitle">Sistema de Presentación para Pantallas de Turno en Zonas de Espera</div>
+    </div>
+
+    <div class="container">
+        <div id="alerts"></div>
+        
+        <div class="grid">
+            <!-- Enviar nueva llamada -->
+            <div class="card">
+                <div class="card-header">Enviar Nueva Llamada</div>
+                <div class="card-body">
+                    <form id="send-call-form">
+                        <div class="form-group">
+                            <label for="ticket">Número de Turno</label>
+                            <input type="text" id="ticket" placeholder="A047" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="content">Mensaje</label>
+                            <textarea id="content" placeholder="Turno A047 - Consulta 3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="target">Destino</label>
+                            <select id="target">
+                                <option value="SP_CARDIO_03">Cardiología - Consulta 3</option>
+                                <option value="SP_CARDIO_04">Cardiología - Consulta 4</option>
+                                <option value="AREA_CARDIO">Área de Cardiología</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="priority">Prioridad</label>
+                            <select id="priority">
+                                <option value="1">1 - Normal</option>
+                                <option value="2">2 - Media</option>
+                                <option value="3" selected>3 - Alta</option>
+                                <option value="4">4 - Urgente</option>
+                                <option value="5">5 - Crítica</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn">Enviar Llamada</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Estado de nodos -->
+            <div class="card">
+                <div class="card-header">Nodos de Visualización</div>
+                <div class="card-body">
+                    <div id="nodes-list" class="status-list">
+                        <div class="status-item">Cargando...</div>
+                    </div>
+                    <button onclick="refreshNodes()" class="btn btn-secondary" style="margin-top: 1rem;">
+                        Actualizar Estado
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mensajes activos -->
+        <div class="card">
+            <div class="card-header">Mensajes Activos</div>
+            <div class="card-body">
+                <div id="messages-list">
+                    <div>Cargando mensajes...</div>
+                </div>
+                <button onclick="refreshMessages()" class="btn btn-secondary" style="margin-top: 1rem;">
+                    Actualizar Mensajes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/v1';
+        const API_KEY = 'demo-key-admin-456';
+
+        // Función para hacer peticiones a la API
+        async function apiRequest(method, endpoint, data = null) {
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-Key': API_KEY
+                }
+            };
+            
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            const result = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(result.error || `HTTP ${response.status}`);
+            }
+            
+            return result;
+        }
+
+        // Mostrar alertas
+        function showAlert(message, type = 'success') {
+            const alertsContainer = document.getElementById('alerts');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            
+            alertsContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Enviar nueva llamada
+        document.getElementById('send-call-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            try {
+                const formData = new FormData(e.target);
+                const data = {
+                    ticket: document.getElementById('ticket').value,
+                    content: document.getElementById('content').value,
+                    target: document.getElementById('target').value,
+                    targetType: 'service_point',
+                    priority: parseInt(document.getElementById('priority').value),
+                    externalRef: `ADMIN_${Date.now()}`
+                };
+                
+                const result = await apiRequest('POST', '/messages', data);
+                showAlert(`Llamada enviada: ${data.ticket}`, 'success');
+                
+                // Limpiar formulario
+                e.target.reset();
+                
+                // Actualizar lista de mensajes
+                setTimeout(refreshMessages, 1000);
+                
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        // Actualizar lista de nodos
+        async function refreshNodes() {
+            try {
+                const data = await apiRequest('GET', '/nodes');
+                const container = document.getElementById('nodes-list');
+                
+                container.innerHTML = data.nodes.map(node => `
+                    <div class="status-item">
+                        <div>
+                            <strong>${node.name}</strong><br>
+                            <small>${node.id} - ${node.location}</small>
+                        </div>
+                        <div class="${node.isOnline ? 'status-online' : 'status-offline'}">
+                            ${node.isOnline ? 'Online' : 'Offline'}
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error refreshing nodes:', error);
+            }
+        }
+
+        // Actualizar lista de mensajes
+        async function refreshMessages() {/*
+            try {
+                const data = await apiRequest('GET', '/messages?channel=calls&limit=10');
+                const container = document.getElementById('messages-list');
+                
+                if (data.messages.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; color: #64748b; padding: 2rem;">No hay mensajes activos</div>';
+                    return;
+                }
+                
+                container.innerHTML = data.messages.map(msg => `
+                    <div class="message-item">
+                        <div class="message-ticket">${msg.ticket || 'Sin número'}</div>
+                        <div class="message-content">${msg.content}</div>
+                        <div class="message-meta">
+                            <span>Destino: ${msg.target}</span>
+                            <span>Prioridad: ${msg.priority}</span>
+                            <button onclick="removeMessage('${msg.id}')" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                                Retirar
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error refreshing messages:', error);
+            }*/
+        }
+
+        // Retirar mensaje
+        async function removeMessage(messageId) {
+            try {
+                await apiRequest('DELETE', `/messages/${messageId}`);
+                showAlert('Mensaje retirado correctamente', 'success');
+                refreshMessages();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshNodes();
+            refreshMessages();
+            
+            // Auto-refresh cada 30 segundos
+            setInterval(() => {
+                refreshNodes();
+                refreshMessages();
+            }, 30000);
+        });
+    </script>
+</body>
+</html>
