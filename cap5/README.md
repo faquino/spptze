@@ -11,8 +11,8 @@ Código resultante de las iteraciones 3 y 4 en el desarrollo del sistema según 
 ## Estructura de carpetas
 ```
 cap5/
-├── player/       # Prueba de concepto modelo de datos 
-└── server/       # Integración API + BD
+├── player/       # Nodo de visualización con MQTT
+└── server/       # Servidor central con MQTT
 ```
 
 ## Tecnologías validadas
