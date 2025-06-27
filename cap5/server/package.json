@@ -1,15 +1,16 @@
 {
   "name": "spptze-server",
   "version": "1.0.0",
-  "description": "SPPTZE - Servidor central con API REST + Sequelize ORM",
+  "description": "SPPTZE - Servidor central con API REST + Sequelize ORM + cliente MQTT",
   "main": "server.js",
   "scripts": {
     "start": "node --env-file=.env server.js",
     "dev": "nodemon --env-file=.env server.js",
     "seed": "node --env-file=.env scripts/seed.js",
-    "test": "node --env-file=.env scripts/test-integration.js"
+    "test": "node --env-file=.env scripts/test-integration.js",
+    "db:install-driver": "node --env-file=.env scripts/install-db-driver.js"
   },
-  "keywords": ["spptze", "queue", "display", "api", "hospital"],
+  "keywords": ["spptze", "queue", "display", "api", "hospital" ],
   "author": "Francisco José Aquino García",
   "license": "MIT",
   "dependencies": {
@@ -21,9 +22,9 @@
     "cors": "^2.8.5",
     "helmet": "^7.1.0",
     "sequelize": "^6.37.7",
-    "pg": "^8.16.0",
-    "pg-hstore": "^2.3.4",
-    "sqlite3": "^5.1.7"
+    "commander": "^14.0.0",
+    "ipaddr.js": "^2.2.0",
+    "mqtt": "^5.13.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
