@@ -6,7 +6,8 @@
  */
 
 // =============================================================
-// SPPTZE - SETUP BASE DE DATOS SQLITE CON SEQUELIZE
+// SPPTZE - SETUP BASE DE DATOS CON SEQUELIZE
+// cap5/server/scripts/seed.js
 // =============================================================
 const { sequelize, testConnection, syncDatabase } = require('../config/database');
 // Importar las funciones de definición de modelos
@@ -35,6 +36,7 @@ const {
 
 // INSERCIÓN DE DATOS DE EJEMPLO
 // =============================================================
+// TODO bulkCreate no ejecuta validaciones ni hooks. Añadir parámetro {validate: true, individualHooks: true }
 async function seedDatabase() {
   console.log('Insertando datos de ejemplo...');
 
@@ -42,7 +44,7 @@ async function seedDatabase() {
     // Plantillas de presentación
     await DisplayTemplate.bulkCreate([
       {
-        id: 'TPL_HOSPITAL_DEFAULT',
+        id: 'TPL_HOSP_DEF',
         name: 'Plantilla Hospital Estándar',
         description: 'Tema visual estándar para entornos hospitalarios',
         config: {
@@ -56,7 +58,7 @@ async function seedDatabase() {
         }
       },
       {
-        id: 'TPL_CARDIO_CUSTOM',
+        id: 'TPL_CARDIO',
         name: 'Plantilla Cardiología',
         description: 'Tema personalizado para el servicio de cardiología',
         config: {
@@ -78,12 +80,12 @@ async function seedDatabase() {
         description: 'Hospital Information System - SIHGA/HPHIS',
         apiKey: 'demo-api-key-hospital-123',
         allowedIPs: ['127.0.0.1', '::1'],
-        defaultResolutionType: 'service_point',
+        defaultResolutionType: 'S', // S=service_point
         defaultChannel: 'calls',
         messageFormat: { ticket: 'string', agenda: 'string', patient: 'string' },
         ticketField: 'ticket',
         targetField: 'agenda',
-        messageField: 'message',
+        contentField: 'message',
         active: true
       },
       {
@@ -91,36 +93,36 @@ async function seedDatabase() {
         name: 'Panel Administración',
         description: 'Interface administrativa interna',
         apiKey: 'demo-key-admin-456',
-        defaultResolutionType: 'location',
+        defaultResolutionType: 'L', // L=location
         defaultChannel: 'info',
         messageFormat: { type: 'string', target_location: 'string', content: 'string' },
         ticketField: 'ticket',
         targetField: 'target_location',
-        messageField: 'content',
+        contentField: 'content',
         active: true
       }
     ]);
 
     // Jerarquía para complejo hospitalario
     await Hierarchy.bulkCreate([
-      { id: 'hospital', name: 'Complejo Hospitalario', description: 'Estructura organizativa típica de un hospital' }
+      { id: 'CH', name: 'Complejo Hospitalario', description: 'Estructura organizativa típica de un hospital' }
     ]);
 
     // Niveles de la jerarquía
     await HierarchyLevel.bulkCreate([
-      { id: 0, hierarchyId: 'hospital', name: 'Edificio', description: 'Edificios del complejo hospitalario', prevId: null },
-      { id: 1, hierarchyId: 'hospital', name: 'Planta', description: 'Plantas de cada edificio', prevId: 0 },
-      { id: 2, hierarchyId: 'hospital', name: 'Area', description: 'Áreas o servicios especializados', prevId: 1 },
-      { id: 3, hierarchyId: 'hospital', name: 'Consulta', description: 'Consultas o salas individuales', prevId: 2 }
+      { id: 'CH_EDI', hierarchyId: 'CH', name: 'Edificio', description: 'Edificios del complejo hospitalario', prevId: null },
+      { id: 'CH_PLT', hierarchyId: 'CH', name: 'Planta', description: 'Plantas de cada edificio', prevId: 'CH_EDI' },
+      { id: 'CH_ARA', hierarchyId: 'CH', name: 'Area', description: 'Áreas o servicios especializados', prevId: 'CH_PLT' },
+      { id: 'CH_CON', hierarchyId: 'CH', name: 'Consulta', description: 'Consultas o salas individuales', prevId: 'CH_ARA' }
     ]);
 
     // Ubicaciones
     await Location.bulkCreate([
-      { id: 'EDI_MONTECELO', name: 'Edificio Montecelo', description: 'Edificio principal', hierarchyId: 'hospital', hierarchyLevelId: 0, parentId: null, templateId: 'TPL_HOSPITAL_DEFAULT' },
-      { id: 'PLANTA_2_MONT', name: 'Planta 2', description: 'Segunda planta del Montecelo', hierarchyId: 'hospital', hierarchyLevelId: 1, parentId: 'EDI_MONTECELO', templateId: 'TPL_HOSPITAL_DEFAULT' },
-      { id: 'AREA_CARDIO', name: 'Cardiología', description: 'Servicio de Cardiología', hierarchyId: 'hospital', hierarchyLevelId: 2, parentId: 'PLANTA_2_MONT', templateId: 'TPL_CARDIO_CUSTOM' },
-      { id: 'CONSULTA_3', name: 'Consulta 3', description: 'Consulta de Cardiología 3', hierarchyId: 'hospital', hierarchyLevelId: 3, parentId: 'AREA_CARDIO', templateId: null },
-      { id: 'CONSULTA_4', name: 'Consulta 4', description: 'Consulta de Cardiología 4', hierarchyId: 'hospital', hierarchyLevelId: 3, parentId: 'AREA_CARDIO', templateId: null }
+      { id: 'EDI_MONTECELO', name: 'Edificio Montecelo', description: 'Edificio principal', hierarchyId: 'CH', hierarchyLevelId: 'CH_EDI', parentId: null, templateId: 'TPL_HOSP_DEF' },
+      { id: 'PLANTA_2_MONT', name: 'Planta 2', description: 'Segunda planta del Montecelo', hierarchyId: 'CH', hierarchyLevelId: 'CH_PLT', parentId: 'EDI_MONTECELO', templateId: 'TPL_HOSP_DEF' },
+      { id: 'AREA_CARDIO', name: 'Cardiología', description: 'Servicio de Cardiología', hierarchyId: 'CH', hierarchyLevelId: 'CH_ARA', parentId: 'PLANTA_2_MONT', templateId: 'TPL_CARDIO' },
+      { id: 'CONSULTA_3', name: 'Consulta 3', description: 'Consulta de Cardiología 3', hierarchyId: 'CH', hierarchyLevelId: 'CH_CON', parentId: 'AREA_CARDIO', templateId: null },
+      { id: 'CONSULTA_4', name: 'Consulta 4', description: 'Consulta de Cardiología 4', hierarchyId: 'CH', hierarchyLevelId: 'CH_CON', parentId: 'AREA_CARDIO', templateId: null }
     ]);
 
     // Puntos de servicio
@@ -138,7 +140,7 @@ async function seedDatabase() {
     // Nodos de visualización
     await DisplayNode.bulkCreate([
       {
-        id: 'NODE_CARDIO_WAIT',
+        id: 'NODE_CARDIO',
         name: 'Pantalla Sala Espera Cardiología',
         description: 'Raspberry Pi en sala de espera de cardiología',
         serialNumber: 'RPI4B2024001',
@@ -153,7 +155,7 @@ async function seedDatabase() {
 
     // Mapeo de nodos a ubicaciones
     await NodeLocationMapping.bulkCreate([
-      { nodeId: 'NODE_CARDIO_WAIT', locationId: 'AREA_CARDIO', showChildren: true, active: true }
+      { nodeId: 'NODE_CARDIO', locationId: 'AREA_CARDIO', showChildren: true, active: true }
     ]);
 
     console.log('Datos de ejemplo insertados correctamente');
@@ -210,7 +212,7 @@ async function testDatabase() {
     console.log('Puntos de servicio:', location?.ServicePoints?.map(sp => sp.name));
 
     // Probar método getEffectiveTemplate
-    const node = await DisplayNode.findByPk('NODE_CARDIO_WAIT', {
+    const node = await DisplayNode.findByPk('NODE_CARDIO', {
       include: [{model: Location}]
     });
     console.log('Nodo:', node?.name);
@@ -219,11 +221,11 @@ async function testDatabase() {
       console.log('\ Probando método getEffectiveTemplate...');
       const templates = await node.getEffectiveTemplate();
       if (templates.length === 0) {
-        console.log('Plantillas efectivas para NODE_CARDIO_WAIT: Ninguna');
+        console.log('Plantillas efectivas para NODE_CARDIO: Ninguna');
       } else if (templates.length === 1) {
-        console.log('Plantilla efectiva para NODE_CARDIO_WAIT:', templates[0].name);
+        console.log('Plantilla efectiva para NODE_CARDIO:', templates[0].name);
       } else {
-        console.log(`Conflicto de plantillas para NODE_CARDIO_WAIT (${templates.length} plantillas en misma profundidad):`);
+        console.log(`Conflicto de plantillas para NODE_CARDIO (${templates.length} plantillas en misma profundidad):`);
         templates.forEach(t => console.log(`  - ${t.name} (${t.id})`));
       }
     }

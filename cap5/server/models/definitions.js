@@ -9,6 +9,7 @@
 // SPPTZE - MODELOS SEQUELIZE
 // =============================================================
 const { DataTypes, Op } = require('sequelize');
+const ipaddr = require('ipaddr.js');
 
 
 // ALGUNAS FUNCIONES DE UTILIDAD
@@ -87,13 +88,23 @@ const getEntityDepth = async (model, entity, parentFieldName = null) => {
   return entityPath.length - 1; // La profundidad mínima es 0
 };
 
+// Para reutilizar funciones de validación en los modelos
+const validators = {
+  // En Location, DisplayNode y ServicePoint
+  isMQTTCompatible(value) {
+    if (!/^[A-Za-z0-9_-]{1,16}$/.test(value)) {
+      throw new Error('Field must be 1-16 chars, alphanumeric with _ or - only');
+    }
+  }
+};
+
 
 // HIERARCHY (Jerarquías organizativas)
 // =============================================================
 const Hierarchy = (sequelize) => {
   return sequelize.define('Hierarchy', {
-    id: { type: DataTypes.STRING, primaryKey: true, allowNull: false },
-    name: { type: DataTypes.STRING, allowNull: false },
+    id: { type: DataTypes.STRING(16), primaryKey: true, allowNull: false },
+    name: { type: DataTypes.STRING(80), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true }
   }, {
     tableName: 'hierarchies',
@@ -106,16 +117,19 @@ const Hierarchy = (sequelize) => {
 // =============================================================
 const HierarchyLevel = (sequelize) => {
   const model = sequelize.define('HierarchyLevel', {
-    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    hierarchyId: { type: DataTypes.STRING, allowNull: false, field: 'hierarchy_id',
+    id: { type: DataTypes.STRING(16), primaryKey: true, allowNull: false },
+    hierarchyId: { type: DataTypes.STRING(16), allowNull: false, field: 'hierarchy_id',
       references: { model: 'hierarchies', key: 'id' },
-      onDelete: 'CASCADE'
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE'
     },
-    name: { type: DataTypes.STRING, allowNull: false },
+    name: { type: DataTypes.STRING(80), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
-    prevId: { type: DataTypes.INTEGER, allowNull: true, field: 'prev_id',
+    prevId: { type: DataTypes.STRING(16), allowNull: true, field: 'prev_id',
       comment: 'Referencia al nivel previo de la jerarquía',
-      references: { model: 'hierarchy_levels', key: 'id' }
+      references: { model: 'hierarchy_levels', key: 'id' },
+      onDelete: 'RESTRICT',
+      onUpdate: 'CASCADE'
     }
   }, {
     tableName: 'hierarchy_levels',
@@ -159,26 +173,44 @@ const HierarchyLevel = (sequelize) => {
 // =============================================================
 const Location = (sequelize) => {
   const model = sequelize.define('Location', {
-    id: { type: DataTypes.STRING, primaryKey: true, allowNull: false },
-    name: { type: DataTypes.STRING, allowNull: false },
+    id: { type: DataTypes.STRING(16), primaryKey: true, allowNull: false,
+      validate: {
+        isMQTTCompatible: validators.isMQTTCompatible
+      }
+    },
+    name: { type: DataTypes.STRING(80), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
-    hierarchyId: { type: DataTypes.STRING, allowNull: false, field: 'hierarchy_id',
+    hierarchyId: { type: DataTypes.STRING(16), allowNull: false, field: 'hierarchy_id',
       comment: '(DN) Referencia a la jerarquía a la que pertenece la ubicación',
-      references: { model: 'hierarchies', key: 'id' }
+      references: { model: 'hierarchies', key: 'id' },
+      onDelete: 'RESTRICT',
+      onUpdate: 'CASCADE'
     },
-    hierarchyLevelId: { type: DataTypes.INTEGER, allowNull: false, field: 'hierarchy_level_id',
-      references: { model: 'hierarchy_levels', key: 'id' }
+    hierarchyLevelId: { type: DataTypes.STRING(16), allowNull: false, field: 'hierarchy_level_id',
+      references: { model: 'hierarchy_levels', key: 'id' },
+      onDelete: 'RESTRICT',
+      onUpdate: 'CASCADE'
      },
-    parentId: { type: DataTypes.STRING, allowNull: true, field: 'parent_id',
+    parentId: { type: DataTypes.STRING(16), allowNull: true, field: 'parent_id',
       comment: 'Referencia a la ubicación madre',
-      references: { model: 'locations', key: 'id' }
+      references: { model: 'locations', key: 'id' },
+      onDelete: 'RESTRICT',
+      onUpdate: 'CASCADE'
     },
-    templateId: { type: DataTypes.STRING, allowNull: true, field: 'template_id',
-      references: { model: 'display_templates', key: 'id' }
+    templateId: { type: DataTypes.STRING(16), allowNull: true, field: 'template_id',
+      references: { model: 'display_templates', key: 'id' },
+      onDelete: 'SET NULL',
+      onUpdate: 'CASCADE'
     }
   }, {
     tableName: 'locations',
     timestamps: false,
+    indexes: [
+      { fields: ['hierarchy_id'] },
+      { fields: ['hierarchy_level_id'] },
+      { fields: ['parent_id'] },
+      { fields: ['template_id'] }
+    ],
     validate: {
       // Verificar que el parent pertenece al nivel que precede al de esta ubicación
       async validateParentHierarchy() {
@@ -232,38 +264,49 @@ const Location = (sequelize) => {
 // =============================================================
 const DisplayNode = (sequelize) => {
   const model = sequelize.define('DisplayNode', {
-    id: { type: DataTypes.STRING, primaryKey: true, allowNull: false },
-    name: { type: DataTypes.STRING, allowNull: false },
+    id: { type: DataTypes.STRING(16), primaryKey: true, allowNull: false,
+      validate: {
+        isMQTTCompatible: validators.isMQTTCompatible
+      }
+    },
+    name: { type: DataTypes.STRING(80), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
-    serialNumber: { type: DataTypes.STRING, allowNull: true, field: 'serial_number' },
+    serialNumber: { type: DataTypes.STRING(32), allowNull: true, field: 'serial_number' },
     macAddress: { type: DataTypes.STRING(12), allowNull: true, field: 'mac_address',
       comment: 'Seis bytes codificados en hexadecimal, sin separadores',
       set(value) {
-        this.setDataValue('mac_address', value ? value.replace(/[:-]/g, '').toUpperCase() : value);
+        this.setDataValue('mac_address', value ? value.replace(/[:-\s\.]/g, '').toUpperCase() : value);
       },
       validate: {
-        isValidMac(value) {
+        isValidMAC(value) {
           if (value && !/^[0-9A-F]{12}$/i.test(value)) {
             throw new Error('MAC address must be 12 hex characters without separators');
           }
         }
       }
     },
-    hostname: { type: DataTypes.STRING, allowNull: true },
-    hardwareModel: { type: DataTypes.STRING, allowNull: true, field: 'hardware_model' },
-    status: { type: DataTypes.STRING, defaultValue: 'active',
+    hostname: { type: DataTypes.STRING(255), allowNull: true },
+    hardwareModel: { type: DataTypes.STRING(32), allowNull: true, field: 'hardware_model' },
+    status: { type: DataTypes.STRING(12), defaultValue: 'active',
       validate: {
         isIn: [['active', 'offline', 'maintenance']]
       }
     },
     lastSeen: { type: DataTypes.DATE, allowNull: true, field: 'last_seen' },
-    templateOverrideId: { type: DataTypes.STRING, allowNull: true, field: 'template_override_id',
-      references: { model: 'display_templates', key: 'id' }
+    templateOverrideId: { type: DataTypes.STRING(16), allowNull: true, field: 'template_override_id',
+      references: { model: 'display_templates', key: 'id' },
+      onDelete: 'SET NULL',
+      onUpdate: 'CASCADE'
     },
     createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, field: 'created_at' }
   }, {
     tableName: 'display_nodes',
-    timestamps: false
+    timestamps: false,
+    indexes: [
+      { fields: ['status'] },
+      { fields: ['template_override_id'] },
+      { fields: ['last_seen'] }
+    ]
   });
 
   model.prototype.getEffectiveTemplate = async function () {
@@ -309,13 +352,15 @@ const DisplayNode = (sequelize) => {
 // =============================================================
 const NodeLocationMapping = (sequelize) => {
   return sequelize.define('NodeLocationMapping', {
-    nodeId: { type: DataTypes.STRING, primaryKey: true, field: 'node_id',
+    nodeId: { type: DataTypes.STRING(16), primaryKey: true, field: 'node_id',
       references: { model: 'display_nodes', key: 'id' },
-      onDelete: 'CASCADE'
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE'
     },
-    locationId: { type: DataTypes.STRING, primaryKey: true, field: 'location_id',
+    locationId: { type: DataTypes.STRING(16), primaryKey: true, field: 'location_id',
       references: { model: 'locations', key: 'id' },
-      onDelete: 'CASCADE'
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE'
     },
     showChildren: { type: DataTypes.BOOLEAN, defaultValue: true, field: 'show_children' },
     active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true }
@@ -330,13 +375,15 @@ const NodeLocationMapping = (sequelize) => {
 // =============================================================
 const ServicePointLocationMapping = (sequelize) => {
   return sequelize.define('ServicePointLocationMapping', {
-    servicePointId: { type: DataTypes.STRING, primaryKey: true, field: 'service_point_id',
+    servicePointId: { type: DataTypes.STRING(16), primaryKey: true, field: 'service_point_id',
       references: { model: 'service_points', key: 'id' },
-      onDelete: 'CASCADE'
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE'
     },
-    locationId: { type: DataTypes.STRING, primaryKey: true, field: 'location_id',
+    locationId: { type: DataTypes.STRING(16), primaryKey: true, field: 'location_id',
       references: { model: 'locations', key: 'id' },
-      onDelete: 'CASCADE'
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE'
     }
   }, {
     tableName: 'service_point_location_mapping',
@@ -349,38 +396,44 @@ const ServicePointLocationMapping = (sequelize) => {
 // =============================================================
 const ExternalSystem = (sequelize) => {
   return sequelize.define('ExternalSystem', {
-    id: { type: DataTypes.STRING, primaryKey: true, allowNull: false },
-    name: { type: DataTypes.STRING, allowNull: false },
+    id: { type: DataTypes.STRING(16), primaryKey: true, allowNull: false },
+    name: { type: DataTypes.STRING(80), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
-    apiKey: { type: DataTypes.STRING, allowNull: true, field: 'api_key' },
-    allowedIPs: { type: DataTypes.JSONB, allowNull: true, field: 'allowed_ips',
+    apiKey: { type: DataTypes.STRING(64), allowNull: true, field: 'api_key' },
+    allowedIPs: { type: DataTypes.JSON, allowNull: true, field: 'allowed_ips',
       comment: 'Lista de IPs o rangos CIDR autorizados para el sistema',
       validate: {
         isValidIPArray(value) {
           if (value === null) return;
-          if (!Array.isArray(value)) throw new Error ('allowedIPs must be an array or null');
+          if (!Array.isArray(value)) throw new Error('allowedIPs must be an array or null');
           for (const item of value) {
             if (typeof item !== 'string' || item.trim() === '')
               throw new Error('Each item in allowedIPs must be a non-empty string');
-            //TODO: Llegados aquí valdría la pena comprobar si item es realmente una IP o rango CIDR
+            
+            // Verificar si es CIDR
+            if (item.includes('/')) {
+              if (!ipaddr.isValidCIDR(item)) throw new Error(`Invalid CIDR: ${item}`);
+            } else {
+              if (!ipaddr.isValid(item)) throw new Error(`Invalid IP: ${item}`);
+            }
           }
         }
       }
     },
-    defaultResolutionType: { type: DataTypes.STRING, allowNull: true, field: 'default_resolution_type',
+    defaultResolutionType: { type: DataTypes.STRING(1), allowNull: true, field: 'default_resolution_type',
       validate: {
-        isIn: [ ['service_point', 'location'] ]
+        isIn: [ ['S', 'L'] ] // S=service_point, L=location
       }
     },
-    defaultChannel: { type: DataTypes.STRING, defaultValue: 'calls', field: 'default_channel',
+    defaultChannel: { type: DataTypes.STRING(16), defaultValue: 'calls', field: 'default_channel',
       validate: {
         isIn: [['calls', 'info', 'emergency', 'announcements']]
       }
     },
-    messageFormat: { type: DataTypes.JSONB, allowNull: true, field: 'message_format' },
-    ticketField: { type: DataTypes.STRING, defaultValue: 'ticket', field: 'ticket_field' },
-    targetField: { type: DataTypes.STRING, defaultValue: 'target', field: 'target_field' },
-    messageField: { type: DataTypes.STRING, defaultValue: 'message', field: 'message_field' },
+    messageFormat: { type: DataTypes.JSON, allowNull: true, field: 'message_format' },
+    ticketField: { type: DataTypes.STRING(20), defaultValue: 'ticket', field: 'ticket_field' },
+    targetField: { type: DataTypes.STRING(20), defaultValue: 'target', field: 'target_field' },
+    contentField: { type: DataTypes.STRING(20), defaultValue: 'content', field: 'content_field' },
     active: { type: DataTypes.BOOLEAN, defaultValue: true }
   }, {
     tableName: 'external_systems',
@@ -393,9 +446,13 @@ const ExternalSystem = (sequelize) => {
 // =============================================================
 const ServicePoint = (sequelize) => {
   return sequelize.define('ServicePoint', {
-    id: { type: DataTypes.STRING, primaryKey: true, allowNull: false },
-    name: { type: DataTypes.STRING, allowNull: false },
-    externalId: { type: DataTypes.STRING, allowNull: true, field: 'external_id' },
+    id: { type: DataTypes.STRING(16), primaryKey: true, allowNull: false,
+      validate: {
+        isMQTTCompatible: validators.isMQTTCompatible
+      }
+    },
+    name: { type: DataTypes.STRING(80), allowNull: false },
+    externalId: { type: DataTypes.STRING(36), allowNull: true, field: 'external_id' },
     active: { type: DataTypes.BOOLEAN, defaultValue: true }
   }, {
     tableName: 'service_points',
@@ -408,25 +465,31 @@ const ServicePoint = (sequelize) => {
 // =============================================================
 const Message = (sequelize) => {
   return sequelize.define('Message', {
-    id: { type: DataTypes.STRING, primaryKey: true, allowNull: false },
-    channel: { type: DataTypes.STRING, defaultValue: 'calls',
+    id: { type: DataTypes.STRING(16), primaryKey: true, allowNull: false },
+    channel: { type: DataTypes.STRING(16), defaultValue: 'calls',
       validate: { isIn: [['calls', 'info', 'emergency', 'announcements']] }
     },
-    ticket: { type: DataTypes.STRING, allowNull: true },
+    ticket: { type: DataTypes.STRING(16), allowNull: true },
     content: { type: DataTypes.TEXT, allowNull: false },
     priority: { type: DataTypes.INTEGER, defaultValue: 1,
       validate: { min: 1, max: 5 }
     },
-    targetLocationId: { type: DataTypes.STRING, allowNull: true, field: 'target_location_id',
-      references: { model: 'locations', key: 'id' }
+    targetLocationId: { type: DataTypes.STRING(16), allowNull: true, field: 'target_location_id',
+      references: { model: 'locations', key: 'id' },
+      onDelete: 'RESTRICT',
+      onUpdate: 'CASCADE'
     },
-    targetServicePointId: { type: DataTypes.STRING, allowNull: true, field: 'target_service_point_id',
-      references: { model: 'service_points', key: 'id' }
+    targetServicePointId: { type: DataTypes.STRING(16), allowNull: true, field: 'target_service_point_id',
+      references: { model: 'service_points', key: 'id' },
+      onDelete: 'RESTRICT',
+      onUpdate: 'CASCADE'
     },
-    sourceSystemId: { type: DataTypes.STRING, allowNull: true, field: 'source_system_id',
-      references: { model: 'external_systems', key: 'id' }
+    sourceSystemId: { type: DataTypes.STRING(16), allowNull: true, field: 'source_system_id',
+      references: { model: 'external_systems', key: 'id' },
+      onDelete: 'RESTRICT',
+      onUpdate: 'CASCADE'
     },
-    externalRef: { type: DataTypes.STRING, allowNull: true, field: 'external_ref',
+    externalRef: { type: DataTypes.STRING(36), allowNull: true, field: 'external_ref',
       comment: 'Identificador del evento/petición/ del mensaje en el sistema externo'
      },
     createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, field: 'created_at' },
@@ -434,6 +497,15 @@ const Message = (sequelize) => {
   }, {
     tableName: 'messages',
     timestamps: false,
+    indexes: [
+      { fields: ['target_location_id'] },
+      { fields: ['target_service_point_id'] },
+      { fields: ['source_system_id'] },
+      { fields: ['created_at'] },
+      { fields: ['expires_at'] },
+      { fields: ['channel'] },
+      { fields: ['priority'] }
+    ],
     validate: {
       // Exactamente uno de los targets debe estar presente
       hasOneTarget() {
@@ -453,25 +525,27 @@ const Message = (sequelize) => {
 // =============================================================
 const MessageDelivery = (sequelize) => {
   return sequelize.define('MessageDelivery', {
-    messageId: { type: DataTypes.STRING, primaryKey: true, field: 'message_id',
+    messageId: { type: DataTypes.STRING(16), primaryKey: true, field: 'message_id',
       references: { model: 'messages', key: 'id' },
-      onDelete: 'CASCADE'
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE'
     },
-    nodeId: { type: DataTypes.STRING, primaryKey: true, field: 'node_id',
+    nodeId: { type: DataTypes.STRING(16), primaryKey: true, field: 'node_id',
       references: { model: 'display_nodes', key: 'id' },
-      onDelete: 'CASCADE'
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE'
     },
     createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, field: 'created_at' },
     deliveredAt: { type: DataTypes.DATE, allowNull: true, field: 'delivered_at',
       comment: 'A proporcionar por el nodo en su ACK'
      },
     acknowledgedAt: { type: DataTypes.DATE, allowNull: true, field: 'acknowledged_at' },
-    status: { type: DataTypes.STRING, defaultValue: 'pending', field: 'status',
+    status: { type: DataTypes.STRING(12), defaultValue: 'pending', field: 'status',
       validate: {
         isIn: [['pending', 'displayed', 'expired', 'filtered', 'error']]
       }
     },
-    statusReason: { type: DataTypes.STRING, allowNull: true, field: 'status_reason' },
+    statusReason: { type: DataTypes.STRING(16), allowNull: true, field: 'status_reason' },
     acknowledged: {
       type: DataTypes.VIRTUAL,
       get() { return this.acknowledgedAt !== null; }
@@ -479,6 +553,13 @@ const MessageDelivery = (sequelize) => {
   }, {
     tableName: 'message_deliveries',
     timestamps: false,
+    indexes: [
+      { fields: ['status'] },
+      { fields: ['created_at'] },
+      { fields: ['delivered_at'] },
+      { fields: ['acknowledged_at'] },
+      { fields: ['status', 'created_at'] }
+    ],
     validate: {
       ackAfterDelivery() {
         if (this.deliveredAt && this.acknowledgedAt) {
@@ -496,10 +577,10 @@ const MessageDelivery = (sequelize) => {
 // =============================================================
 const DisplayTemplate = (sequelize) => {
   return sequelize.define('DisplayTemplate', {
-    id: { type: DataTypes.STRING, primaryKey: true, allowNull: false },
-    name: { type: DataTypes.STRING, allowNull: false },
+    id: { type: DataTypes.STRING(16), primaryKey: true, allowNull: false },
+    name: { type: DataTypes.STRING(80), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
-    config: { type: DataTypes.JSONB, allowNull: true, defaultValue: {},
+    config: { type: DataTypes.JSON, allowNull: true, defaultValue: {},
       validate: {
         isValidConfig(value) {
           // Validación básica de estructura de configuración
