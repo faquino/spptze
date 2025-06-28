@@ -120,7 +120,7 @@ const HierarchyLevel = (sequelize) => {
     id: { type: DataTypes.STRING(16), primaryKey: true, allowNull: false },
     hierarchyId: { type: DataTypes.STRING(16), allowNull: false, field: 'hierarchy_id',
       references: { model: 'hierarchies', key: 'id' },
-      onDelete: 'CASCADE',
+      onDelete: 'RESTRICT', // No permitir borrar jerarquía si tiene niveles
       onUpdate: 'CASCADE'
     },
     name: { type: DataTypes.STRING(80), allowNull: false },
@@ -128,7 +128,7 @@ const HierarchyLevel = (sequelize) => {
     prevId: { type: DataTypes.STRING(16), allowNull: true, field: 'prev_id',
       comment: 'Referencia al nivel previo de la jerarquía',
       references: { model: 'hierarchy_levels', key: 'id' },
-      onDelete: 'RESTRICT',
+      onDelete: 'RESTRICT', // No permitir borrar nivel si otros dependen de él
       onUpdate: 'CASCADE'
     }
   }, {
@@ -183,23 +183,23 @@ const Location = (sequelize) => {
     hierarchyId: { type: DataTypes.STRING(16), allowNull: false, field: 'hierarchy_id',
       comment: '(DN) Referencia a la jerarquía a la que pertenece la ubicación',
       references: { model: 'hierarchies', key: 'id' },
-      onDelete: 'RESTRICT',
+      onDelete: 'RESTRICT', // No permitir borrar jerarquía si tiene ubicaciones
       onUpdate: 'CASCADE'
     },
     hierarchyLevelId: { type: DataTypes.STRING(16), allowNull: false, field: 'hierarchy_level_id',
       references: { model: 'hierarchy_levels', key: 'id' },
-      onDelete: 'RESTRICT',
+      onDelete: 'RESTRICT', // No permitir borrar nivel si hay ubicaciones en él
       onUpdate: 'CASCADE'
      },
     parentId: { type: DataTypes.STRING(16), allowNull: true, field: 'parent_id',
       comment: 'Referencia a la ubicación madre',
       references: { model: 'locations', key: 'id' },
-      onDelete: 'RESTRICT',
+      onDelete: 'RESTRICT', // No permitir borrar ubicación si tiene hijas
       onUpdate: 'CASCADE'
     },
     templateId: { type: DataTypes.STRING(16), allowNull: true, field: 'template_id',
       references: { model: 'display_templates', key: 'id' },
-      onDelete: 'SET NULL',
+      onDelete: 'SET NULL', // Permitir borrar plantilla, heredará de otra ubicación precedente
       onUpdate: 'CASCADE'
     }
   }, {
@@ -295,7 +295,7 @@ const DisplayNode = (sequelize) => {
     lastSeen: { type: DataTypes.DATE, allowNull: true, field: 'last_seen' },
     templateOverrideId: { type: DataTypes.STRING(16), allowNull: true, field: 'template_override_id',
       references: { model: 'display_templates', key: 'id' },
-      onDelete: 'SET NULL',
+      onDelete: 'SET NULL', // Permitir borrar plantilla, volverá a resolverse por ubicación
       onUpdate: 'CASCADE'
     },
     createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, field: 'created_at' }
@@ -354,12 +354,12 @@ const NodeLocationMapping = (sequelize) => {
   return sequelize.define('NodeLocationMapping', {
     nodeId: { type: DataTypes.STRING(16), primaryKey: true, field: 'node_id',
       references: { model: 'display_nodes', key: 'id' },
-      onDelete: 'CASCADE',
+      onDelete: 'CASCADE', // Borrar nodo elimina sus mapeos
       onUpdate: 'CASCADE'
     },
     locationId: { type: DataTypes.STRING(16), primaryKey: true, field: 'location_id',
       references: { model: 'locations', key: 'id' },
-      onDelete: 'CASCADE',
+      onDelete: 'CASCADE', // Borrar ubicación elimina sus mapeos
       onUpdate: 'CASCADE'
     },
     showChildren: { type: DataTypes.BOOLEAN, defaultValue: true, field: 'show_children' },
@@ -377,12 +377,12 @@ const ServicePointLocationMapping = (sequelize) => {
   return sequelize.define('ServicePointLocationMapping', {
     servicePointId: { type: DataTypes.STRING(16), primaryKey: true, field: 'service_point_id',
       references: { model: 'service_points', key: 'id' },
-      onDelete: 'CASCADE',
+      onDelete: 'CASCADE', // Borrar service point elimina sus mapeos
       onUpdate: 'CASCADE'
     },
     locationId: { type: DataTypes.STRING(16), primaryKey: true, field: 'location_id',
       references: { model: 'locations', key: 'id' },
-      onDelete: 'CASCADE',
+      onDelete: 'CASCADE', // Borrar ubicación elimina sus mapeos
       onUpdate: 'CASCADE'
     }
   }, {
@@ -476,17 +476,17 @@ const Message = (sequelize) => {
     },
     targetLocationId: { type: DataTypes.STRING(16), allowNull: true, field: 'target_location_id',
       references: { model: 'locations', key: 'id' },
-      onDelete: 'RESTRICT',
+      onDelete: 'RESTRICT', // No permitir borrar ubicación si hay mensajes pendientes
       onUpdate: 'CASCADE'
     },
     targetServicePointId: { type: DataTypes.STRING(16), allowNull: true, field: 'target_service_point_id',
       references: { model: 'service_points', key: 'id' },
-      onDelete: 'RESTRICT',
+      onDelete: 'RESTRICT', // No permitir borrar service point si hay mensajes pendientes
       onUpdate: 'CASCADE'
     },
     sourceSystemId: { type: DataTypes.STRING(16), allowNull: true, field: 'source_system_id',
       references: { model: 'external_systems', key: 'id' },
-      onDelete: 'RESTRICT',
+      onDelete: 'RESTRICT', // No permitir borrar sistema si hay mensajes suyos
       onUpdate: 'CASCADE'
     },
     externalRef: { type: DataTypes.STRING(36), allowNull: true, field: 'external_ref',
@@ -527,12 +527,12 @@ const MessageDelivery = (sequelize) => {
   return sequelize.define('MessageDelivery', {
     messageId: { type: DataTypes.STRING(16), primaryKey: true, field: 'message_id',
       references: { model: 'messages', key: 'id' },
-      onDelete: 'CASCADE',
+      onDelete: 'CASCADE', // Borrar mensaje elimina sus registros de entrega
       onUpdate: 'CASCADE'
     },
     nodeId: { type: DataTypes.STRING(16), primaryKey: true, field: 'node_id',
       references: { model: 'display_nodes', key: 'id' },
-      onDelete: 'CASCADE',
+      onDelete: 'CASCADE', // Borrar nodo elimina sus registros de entrega
       onUpdate: 'CASCADE'
     },
     createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, field: 'created_at' },
