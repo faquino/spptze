@@ -8,8 +8,8 @@
 // =============================================================
 // SPPTZE - MODELOS SEQUELIZE
 // =============================================================
-// Se usa en algunas tablas created_At junto con timestamps: false deliberadamente; timestamps: true haría que
-// Sequelize añadiese a esas tablas un campo updated_at que se ha considerado inncecesario en este modelo de datos
+// Se usa en algunas tablas created_At junto con timestamps: false deliberadamente; timestamps: Sequelize
+// añadiría en esas tablas un campo updated_at, que se ha considerado inncecesario para el modelo de datos
 const { DataTypes, Op } = require('sequelize');
 const ipaddr = require('ipaddr.js');
 
@@ -92,7 +92,7 @@ const getEntityDepth = async (model, entity, parentFieldName = null) => {
 
 
 // Canales de mensaje válidos
-// TODO: migrar a tabla 'channels' vinculada con external_systems, display_templates y messages
+// TODO: migrar a nueva tabla 'channels' vinculada con ExternalSystem, DisplayTemplate y Message
 const VALID_MESSAGE_CHANNELS = ['calls', 'info', 'emergency', 'announcements'];
 
 // Para reutilizar funciones de validación en los modelos
@@ -116,7 +116,8 @@ const Hierarchy = (sequelize) => {
     description: { type: DataTypes.TEXT, allowNull: true }
   }, {
     tableName: 'hierarchies',
-    timestamps: false
+    timestamps: false,
+    comment: 'Jerarquías organizativas definidas en el sistema',
   });
 };
 
@@ -142,6 +143,7 @@ const HierarchyLevel = (sequelize) => {
   }, {
     tableName: 'hierarchy_levels',
     timestamps: false,
+    comment: 'Niveles definidos por cada jerarquía organizativa',
     indexes: [ { unique: true, fields: ['hierarchy_id', 'name'] },
                { unique: true, fields: ['prev_id'] } ],
     validate: {
@@ -213,6 +215,7 @@ const Location = (sequelize) => {
   }, {
     tableName: 'locations',
     timestamps: false,
+    comment: 'Ubicaciones inventariadas en la jerarquía organizativa',
     indexes: [
       { fields: ['hierarchy_id'] },
       { fields: ['hierarchy_level_id'] },
@@ -298,7 +301,7 @@ const DisplayNode = (sequelize) => {
     active: { type: DataTypes.BOOLEAN, defaultValue: true },
     lastSeen: { type: DataTypes.DATE, allowNull: true, field: 'last_seen' },
     templateOverrideId: { type: DataTypes.STRING(16), allowNull: true, field: 'template_override_id',
-      comment: 'Anula la lógica de asignación de plantilla basade en la jerarquía de ubicaciones',
+      comment: 'Permite anular la lógica de asignación de plantilla basada en la jerarquía de ubicaciones',
       references: { model: 'display_templates', key: 'id' },
       onDelete: 'SET NULL', // Permitir borrar plantilla, volverá a resolverse por ubicación
       onUpdate: 'CASCADE'
@@ -307,6 +310,7 @@ const DisplayNode = (sequelize) => {
   }, {
     tableName: 'display_nodes',
     timestamps: false,
+    comment: 'Nodos de visualización inventariados en el sistema',
     indexes: [
       { fields: ['active'] },
       { fields: ['template_override_id'] },
@@ -372,7 +376,8 @@ const NodeLocationMapping = (sequelize) => {
     active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true }
   }, {
     tableName: 'node_location_mapping',
-    timestamps: false
+    timestamps: false,
+    comment: 'Tabla de relación M:N entre DisplayNode y Location',
   });
 };
 
@@ -393,7 +398,8 @@ const ServicePointLocationMapping = (sequelize) => {
     }
   }, {
     tableName: 'service_point_location_mapping',
-    timestamps: false
+    timestamps: false,
+    comment: 'Tabla de relación M:N entre ServicePoint y Location',
   });
 };
 
@@ -441,14 +447,15 @@ const ExternalSystem = (sequelize) => {
     active: { type: DataTypes.BOOLEAN, defaultValue: true }
   }, {
     tableName: 'external_systems',
-    timestamps: false
+    timestamps: false,
+    comment: 'Sistemas externos que envían mensajes a través de la API',
   });
 };
 
 
 // SERVICE_POINT (Puntos de servicio - agrupaciones lógicas de ubicaciones)
-// TODO?: Una relación M:N con ExternalSystem permitiría la  reutilización de ServicePoints entre sistemas.
-// Actualmente cada ServicePoint pertenece a un único ExternalSystem para resolver colisiones de external_id entre
+// TODO?: Una relación M:N con ExternalSystem permitiría p.ej. la reutilización de ServicePoints entre sistemas.
+// Actualmente cada ServicePoint pertenece a un único ExternalSystem, para resolver colisiones de external_id entre
 // dos o más sistemas externos.
 // =============================================================
 const ServicePoint = (sequelize) => {
@@ -469,6 +476,7 @@ const ServicePoint = (sequelize) => {
   }, {
     tableName: 'service_points',
     timestamps: false,
+    comment: 'Agrupaciones lógicas de ubicaciones referidas por algún sistema externo',
     indexes: [
       { unique: true, fields: ['source_system_id', 'external_id'] },
       { fields: ['source_system_id'] }
@@ -506,13 +514,14 @@ const Message = (sequelize) => {
       onUpdate: 'CASCADE'
     },
     externalRef: { type: DataTypes.STRING(36), allowNull: true, field: 'external_ref',
-      comment: 'Identificador del evento/petición/ del mensaje en el sistema externo'
+      comment: 'Identificador del evento/petición/... del mensaje en el sistema externo'
      },
     createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, field: 'created_at' },
     expiresAt: { type: DataTypes.DATE, allowNull: true, field: 'expires_at' }
   }, {
     tableName: 'messages',
     timestamps: false,
+    comment: 'Mensajes o llamadas de turno recibidos a través de la API',
     indexes: [
       { fields: ['target_location_id'] },
       { fields: ['target_service_point_id'] },
@@ -569,6 +578,7 @@ const MessageDelivery = (sequelize) => {
   }, {
     tableName: 'message_deliveries',
     timestamps: false,
+    comment: 'Registros de entrega de mensajes a nodos de visualización',
     indexes: [
       { fields: ['status'] },
       { fields: ['created_at'] },
