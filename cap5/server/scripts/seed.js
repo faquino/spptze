@@ -127,8 +127,8 @@ async function seedDatabase() {
 
     // Puntos de servicio
     await ServicePoint.bulkCreate([
-      { id: 'SP_CARDIO_03', name: 'Cardiología Consulta 3', externalId: 'CARDIO_MAÑANA_DRG', active: true },
-      { id: 'SP_CARDIO_04', name: 'Cardiología Consulta 4', externalId: 'CARDIO_TARDE_DRG', active: true }
+      { id: 'SP_CARDIO_03', name: 'Cardiología Consulta 3', sourceSystemId: 'HIS_SIHGA', externalId: 'CARDIO_MAÑANA_DRG', active: true },
+      { id: 'SP_CARDIO_04', name: 'Cardiología Consulta 4', sourceSystemId: 'HIS_SIHGA', externalId: 'CARDIO_TARDE_DRG', active: true }
     ]);
 
     // Mapeo de puntos de servicio a ubicaciones
@@ -147,7 +147,7 @@ async function seedDatabase() {
         macAddress: 'DCA632123456',
         hostname: 'rpi-cardio-01',
         hardwareModel: 'Raspberry Pi 4B',
-        status: 'active',
+        active: 'true',
         templateOverrideId: null,
         lastSeen: new Date()
       }
@@ -216,6 +216,7 @@ async function testDatabase() {
       include: [{model: Location}]
     });
     console.log('Nodo:', node?.name);
+    console.log('Estado activo:', node?.active);
     console.log('Ubicaciones asignadas:', node?.Locations?.map(l => l.name));
     if (node) {
       console.log('\ Probando método getEffectiveTemplate...');

@@ -8,6 +8,8 @@
 // =============================================================
 // SPPTZE - MODELOS SEQUELIZE
 // =============================================================
+// Se usa en algunas tablas created_At junto con timestamps: false deliberadamente; timestamps: true haría que
+// Sequelize añadiese a esas tablas un campo updated_at que se ha considerado inncecesario en este modelo de datos
 const { DataTypes, Op } = require('sequelize');
 const ipaddr = require('ipaddr.js');
 
@@ -88,9 +90,15 @@ const getEntityDepth = async (model, entity, parentFieldName = null) => {
   return entityPath.length - 1; // La profundidad mínima es 0
 };
 
+
+// Canales de mensaje válidos
+// TODO: migrar a tabla 'channels' vinculada con external_systems, display_templates y messages
+const VALID_MESSAGE_CHANNELS = ['calls', 'info', 'emergency', 'announcements'];
+
 // Para reutilizar funciones de validación en los modelos
 const validators = {
   // En Location, DisplayNode y ServicePoint
+  //Los IDs de estas entidades se usarán directamente como niveles en topics MQTT
   isMQTTCompatible(value) {
     if (!/^[A-Za-z0-9_-]{1,16}$/.test(value)) {
       throw new Error('Field must be 1-16 chars, alphanumeric with _ or - only');
@@ -287,13 +295,10 @@ const DisplayNode = (sequelize) => {
     },
     hostname: { type: DataTypes.STRING(255), allowNull: true },
     hardwareModel: { type: DataTypes.STRING(32), allowNull: true, field: 'hardware_model' },
-    status: { type: DataTypes.STRING(12), defaultValue: 'active',
-      validate: {
-        isIn: [['active', 'offline', 'maintenance']]
-      }
-    },
+    active: { type: DataTypes.BOOLEAN, defaultValue: true },
     lastSeen: { type: DataTypes.DATE, allowNull: true, field: 'last_seen' },
     templateOverrideId: { type: DataTypes.STRING(16), allowNull: true, field: 'template_override_id',
+      comment: 'Anula la lógica de asignación de plantilla basade en la jerarquía de ubicaciones',
       references: { model: 'display_templates', key: 'id' },
       onDelete: 'SET NULL', // Permitir borrar plantilla, volverá a resolverse por ubicación
       onUpdate: 'CASCADE'
@@ -303,12 +308,14 @@ const DisplayNode = (sequelize) => {
     tableName: 'display_nodes',
     timestamps: false,
     indexes: [
-      { fields: ['status'] },
+      { fields: ['active'] },
       { fields: ['template_override_id'] },
       { fields: ['last_seen'] }
     ]
   });
 
+  // Se devuelve un array con las plantillas más específicas (a mayor profundidad en la jerarquía). El código cliente
+  //deberá tomar la decisión correspondiente si la longitud de dicho array > 1
   model.prototype.getEffectiveTemplate = async function () {
     // Si hay template override se usa ése
     if (this.templateOverrideId) return await sequelize.models.DisplayTemplate.findByPk(this.templateOverrideId);
@@ -343,7 +350,6 @@ const DisplayNode = (sequelize) => {
     }
     return templatesAtHighestDepth;
   };
-
   return model;
 };
 
@@ -426,9 +432,7 @@ const ExternalSystem = (sequelize) => {
       }
     },
     defaultChannel: { type: DataTypes.STRING(16), defaultValue: 'calls', field: 'default_channel',
-      validate: {
-        isIn: [['calls', 'info', 'emergency', 'announcements']]
-      }
+      validate: { isIn: [VALID_MESSAGE_CHANNELS] }
     },
     messageFormat: { type: DataTypes.JSON, allowNull: true, field: 'message_format' },
     ticketField: { type: DataTypes.STRING(20), defaultValue: 'ticket', field: 'ticket_field' },
@@ -443,6 +447,9 @@ const ExternalSystem = (sequelize) => {
 
 
 // SERVICE_POINT (Puntos de servicio - agrupaciones lógicas de ubicaciones)
+// TODO?: Una relación M:N con ExternalSystem permitiría la  reutilización de ServicePoints entre sistemas.
+// Actualmente cada ServicePoint pertenece a un único ExternalSystem para resolver colisiones de external_id entre
+// dos o más sistemas externos.
 // =============================================================
 const ServicePoint = (sequelize) => {
   return sequelize.define('ServicePoint', {
@@ -452,11 +459,20 @@ const ServicePoint = (sequelize) => {
       }
     },
     name: { type: DataTypes.STRING(80), allowNull: false },
-    externalId: { type: DataTypes.STRING(36), allowNull: true, field: 'external_id' },
+    sourceSystemId: { type: DataTypes.STRING(16), allowNull: false, field: 'source_system_id',
+      references: { model: 'external_systems', key: 'id' },
+      onDelete: 'RESTRICT', // No permitir borrar sistema si tiene service points
+      onUpdate: 'CASCADE'
+    },
+    externalId: { type: DataTypes.STRING(36), allowNull: false, field: 'external_id' },
     active: { type: DataTypes.BOOLEAN, defaultValue: true }
   }, {
     tableName: 'service_points',
-    timestamps: false
+    timestamps: false,
+    indexes: [
+      { unique: true, fields: ['source_system_id', 'external_id'] },
+      { fields: ['source_system_id'] }
+    ]
   });
 };
 
@@ -467,7 +483,7 @@ const Message = (sequelize) => {
   return sequelize.define('Message', {
     id: { type: DataTypes.STRING(16), primaryKey: true, allowNull: false },
     channel: { type: DataTypes.STRING(16), defaultValue: 'calls',
-      validate: { isIn: [['calls', 'info', 'emergency', 'announcements']] }
+      validate: { isIn: [VALID_MESSAGE_CHANNELS] }
     },
     ticket: { type: DataTypes.STRING(16), allowNull: true },
     content: { type: DataTypes.TEXT, allowNull: false },
@@ -598,7 +614,7 @@ const DisplayTemplate = (sequelize) => {
 };
 
 
-// DEFINICIÓN DE ASOCIACIONES ENTRE MODELOS
+// DEFINICIÓN DE ASOCIACIONES ENTRE MODELOS-ENTIDADES
 // =============================================================
 const defineAssociations = ({ Hierarchy, HierarchyLevel, Location, DisplayNode,
                               NodeLocationMapping, ServicePointLocationMapping, ExternalSystem,
@@ -642,6 +658,10 @@ const defineAssociations = ({ Hierarchy, HierarchyLevel, Location, DisplayNode,
     foreignKey: 'locationId',
     otherKey: 'nodeId'
   });
+
+    // Puntos de servicio y sistemas externos
+  ExternalSystem.hasMany(ServicePoint, { foreignKey: 'sourceSystemId' });
+  ServicePoint.belongsTo(ExternalSystem, { as: 'sourceSystem', foreignKey: 'sourceSystemId' });
 
   // Puntos de servicio y ubicaciones (M:N)
   ServicePoint.belongsToMany(Location, { 
