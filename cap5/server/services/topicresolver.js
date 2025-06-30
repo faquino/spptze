@@ -16,28 +16,23 @@ class TopicResolver {
    * Construye el topic MQTT para un mensaje
    * @param {string} targetType - 'service_point' o 'location'
    * @param {string} targetId - ID del destino
-   * @param {string} sourceId - ID del sistema externo
    * @returns {Promise<string>} Topic MQTT completo
    */
   static async buildTopic(targetType, targetId) {
-    const servicePoint = await ServicePoint.findOne({where: {}})
     if (targetType === 'service_point') {
+      // Comprobar que el punto de servicio existe
+      const servicePoint = await ServicePoint.findByPk(targetId);
+      if (!servicePoint) throw new Error(`ServicePoint ${targetId} not found`);
       return `spptze/messages/sp/${targetId}`;
     } else {
-      return await this.buildLocationTopic(targetId);
-    }
-  }
+      // Comprobar que la ubicación existe
+      const location = await Location.findByPk(targetId);
+      if (!location) throw new Error(`Location ${targetId} not found`);
 
-  /**
-   * Construye topic jerárquico para ubicación
-   */
-  static async buildLocationTopic(locationId) {
-    const location = await Location.findByPk(locationId);
-    if (!location) throw new Error(`Location ${locationId} not found`);
-    
-    const path = await location.getPath(); // Tu método existente
-    const pathStr = path.map(loc => loc.id).join('/');
-    return `spptze/messages/loc/${pathStr}`;
+      const path = await location.getPath(); // Método existente en modelo Sequelize de Location
+      const pathStr = path.map(loc => loc.id).join('/');
+      return `spptze/messages/loc/${pathStr}`;
+    }
   }
 
   /**
