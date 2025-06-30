@@ -252,6 +252,14 @@ async function testDatabase() {
       console.log(`Path desde raíz: ${path.map(loc => loc.name).join(' → ')}`);
     }
 
+    // Probar getChildren
+    const planta2M = await Location.findByPk('PLANTA_2_MONT');
+    if (planta2M) {
+      const children = await planta2M.getChildren();
+      console.log(`\n Ubicación "PLANTA_2_MONT" tiene ${children.length} descendientes:`);
+      children.forEach(child => console.log(`  - ${child.name} (${child.id})`));
+    }
+
     // Probar resolución de service point
     const servicePoint = await ServicePoint.findByPk('SP_CARDIO_03', {
       include: [{ model: Location }]

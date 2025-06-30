@@ -267,6 +267,17 @@ const Location = (sequelize) => {
     return await getEntityPath(sequelize.models.Location, this, 'parentId');
   };
 
+  // Método para obtener las descendientes de una ubicación
+  model.prototype.getChildren = async function() {
+    const immediateChildren = await sequelize.models.Location.findAll({ where: { parentId: this.id } });
+    let retVal = [...immediateChildren];
+    for (const child of immediateChildren) {
+      const grandChildren = await child.getChildren();
+      retVal = retVal.concat(grandChildren);
+    }
+    return retVal;
+  };
+
   return model;
 };
 
