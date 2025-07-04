@@ -4,11 +4,11 @@
   "description": "SPPTZE - Servidor central con API REST + Sequelize ORM + cliente MQTT",
   "main": "server.js",
   "scripts": {
-    "start": "node --env-file=.env server.js",
-    "dev": "nodemon --env-file=.env server.js",
-    "seed": "node --env-file=.env scripts/seed.js",
-    "test": "node --env-file=.env scripts/test-integration.js",
-    "db:install-driver": "node --env-file=.env scripts/install-db-driver.js"
+    "start": "node --env-file=.env src/server.js",
+    "dev": "nodemon --env-file=.env src/server.js",
+    "seed": "node --env-file=.env src/scripts/seed.js",
+    "test": "node --env-file=.env src/scripts/test-integration.js",
+    "db:install-driver": "node --env-file=.env src/scripts/install-db-driver.js"
   },
   "keywords": [ "spptze", "queue", "display", "api", "mqtt", "sequelize", "express" ],
   "author": "Francisco José Aquino García",
