@@ -8,8 +8,10 @@
 // =============================================================
 // SPPTZE - MODELOS SEQUELIZE
 // =============================================================
-// Se usa en algunas tablas created_At junto con timestamps: false deliberadamente; timestamps: Sequelize
-// añadiría en esas tablas un campo updated_at, que se ha considerado inncecesario para el modelo de datos
+// Se usa en algunas tablas created_At junto con timestamps: false deliberadamente. Con timestamps: true
+// Sequelize gestiona la actualización de los campos created_at y/o updated_at automágicamente, característica
+// que se ha considerado inncecesario para el modelo de datos, y solo DisplayNode, Message y MessageDelivery
+// hacen algún uso de timestamps
 const { DataTypes, Op } = require('sequelize');
 const ipaddr = require('ipaddr.js');
 
@@ -308,6 +310,7 @@ const DisplayNode = (sequelize) => {
       }
     },
     hostname: { type: DataTypes.STRING(255), allowNull: true },
+    //TODO: mejor en una tabla separada de modelos de plataformas hardware
     hardwareModel: { type: DataTypes.STRING(32), allowNull: true, field: 'hardware_model' },
     active: { type: DataTypes.BOOLEAN, defaultValue: true },
     lastSeen: { type: DataTypes.DATE, allowNull: true, field: 'last_seen' },
@@ -383,7 +386,9 @@ const NodeLocationMapping = (sequelize) => {
       onDelete: 'CASCADE', // Borrar ubicación elimina sus mapeos
       onUpdate: 'CASCADE'
     },
-    showChildren: { type: DataTypes.BOOLEAN, defaultValue: true, field: 'show_children' },
+    showChildren: { type: DataTypes.BOOLEAN, defaultValue: true, field: 'show_children',
+      comment: 'El nodo debe mostrar también los mensajes dirigidos a ubicaciones descendientes'
+     },
     active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true }
   }, {
     tableName: 'node_location_mapping',
@@ -443,7 +448,7 @@ const ExternalSystem = (sequelize) => {
         }
       }
     },
-    defaultResolutionType: { type: DataTypes.STRING(1), allowNull: true, field: 'default_resolution_type',
+    defaultTargetType: { type: DataTypes.STRING(1), allowNull: false, field: 'default_target_type',
       validate: {
         isIn: [ ['S', 'L'] ] // S=service_point, L=location
       }
@@ -482,7 +487,9 @@ const ServicePoint = (sequelize) => {
       onDelete: 'RESTRICT', // No permitir borrar sistema si tiene service points
       onUpdate: 'CASCADE'
     },
-    externalId: { type: DataTypes.STRING(36), allowNull: false, field: 'external_id' },
+    externalId: { type: DataTypes.STRING(36), allowNull: false, field: 'external_id',
+      comment: 'ID por el que el sistema externo conoce y se refiere al punto de servicio'
+    },
     active: { type: DataTypes.BOOLEAN, defaultValue: true }
   }, {
     tableName: 'service_points',
@@ -524,6 +531,12 @@ const Message = (sequelize) => {
       onDelete: 'RESTRICT', // No permitir borrar sistema si hay mensajes suyos
       onUpdate: 'CASCADE'
     },
+    ogMessageId: { type: DataTypes.STRING(16), allowNull: true, field: 'og_message_id',
+      comment: 'Referencia al mensaje original en caso de repetición',
+      references: { model: 'messages', key: 'id' },
+      onDelete: 'SET NULL', // Si se borra mensaje original la repetición sigue existiendo
+      onUpdate: 'CASCADE'
+    },
     externalRef: { type: DataTypes.STRING(36), allowNull: true, field: 'external_ref',
       comment: 'Identificador del evento/petición/... del mensaje en el sistema externo'
      },
@@ -537,6 +550,7 @@ const Message = (sequelize) => {
       { fields: ['target_location_id'] },
       { fields: ['target_service_point_id'] },
       { fields: ['source_system_id'] },
+      { fields: ['og_message_id'] },
       { fields: ['created_at'] },
       { fields: ['expires_at'] },
       { fields: ['channel'] },
@@ -571,17 +585,18 @@ const MessageDelivery = (sequelize) => {
       onDelete: 'CASCADE', // Borrar nodo elimina sus registros de entrega
       onUpdate: 'CASCADE'
     },
-    createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, field: 'created_at' },
-    deliveredAt: { type: DataTypes.DATE, allowNull: true, field: 'delivered_at',
-      comment: 'A proporcionar por el nodo en su ACK'
+    createdAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW, field: 'created_at',
+      comment: 'Timestamp de creación de la tupla'
      },
-    acknowledgedAt: { type: DataTypes.DATE, allowNull: true, field: 'acknowledged_at' },
-    status: { type: DataTypes.STRING(12), defaultValue: 'pending', field: 'status',
-      validate: {
-        isIn: [['pending', 'displayed', 'expired', 'filtered', 'error']]
-      }
+    deliveredAt: { type: DataTypes.DATE, allowNull: true, field: 'delivered_at',
+      comment: 'Timestamp de entrega del mensaje al nodo'
+     },
+    acknowledgedAt: { type: DataTypes.DATE, allowNull: true, field: 'acknowledged_at',
+      comment: 'Timestamp de entrega del mensaje de ACK del nodo'
+     },
+    retractedAt: { type: DataTypes.DATE, allowNull: true, field: 'retracted_at',
+      comment: 'Timestamp del informe de retirada del mensaje por parte del nodo'
     },
-    statusReason: { type: DataTypes.STRING(16), allowNull: true, field: 'status_reason' },
     acknowledged: {
       type: DataTypes.VIRTUAL,
       get() { return this.acknowledgedAt !== null; }
@@ -591,19 +606,16 @@ const MessageDelivery = (sequelize) => {
     timestamps: false,
     comment: 'Registros de entrega de mensajes a nodos de visualización',
     indexes: [
-      { fields: ['status'] },
       { fields: ['created_at'] },
       { fields: ['delivered_at'] },
       { fields: ['acknowledged_at'] },
-      { fields: ['status', 'created_at'] }
+      { fields: ['retracted_at'] }
     ],
     validate: {
-      ackAfterDelivery() {
-        if (this.deliveredAt && this.acknowledgedAt) {
-          if (this.acknowledgedAt <= this.deliveredAt) {
-            throw new Error('Acknowledge time must be after delivery time');
-          }
-        }
+      // No se valida deliveredAt por si hubiese desajuste entre los relojes del servidor y el nodo
+      ackAfterCreate() {
+        if (this.acknowledgedAt && (this.acknowledgedAt <= this.createdAt))
+            throw new Error('ACK time must be after creation time');
       }
     }
   });
@@ -697,6 +709,9 @@ const defineAssociations = ({ Hierarchy, HierarchyLevel, Location, DisplayNode,
   });
 
   // Mensajes
+  Message.belongsTo(Message, { as: 'originalMessage', foreignKey: 'ogMessageId' });
+  Message.hasMany(Message, { as: 'repeats', foreignKey: 'ogMessageId' });
+
   ExternalSystem.hasMany(Message, { foreignKey: 'sourceSystemId' });
   Message.belongsTo(ExternalSystem, { foreignKey: 'sourceSystemId' });
   

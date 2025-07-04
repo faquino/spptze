@@ -80,7 +80,7 @@ async function seedDatabase() {
         description: 'Hospital Information System - SIHGA/HPHIS',
         apiKey: 'demo-api-key-hospital-123',
         allowedIPs: ['127.0.0.1', '::1'],
-        defaultResolutionType: 'S', // S=service_point
+        defaultTargetType: 'S', // S=service_point
         defaultChannel: 'calls',
         messageFormat: { ticket: 'string', agenda: 'string', patient: 'string' },
         ticketField: 'ticket',
@@ -91,9 +91,9 @@ async function seedDatabase() {
       {
         id: 'ADMIN_PANEL',
         name: 'Panel Administración',
-        description: 'Interface administrativa interna',
+        description: 'Interfaz administrativa interna',
         apiKey: 'demo-key-admin-456',
-        defaultResolutionType: 'L', // L=location
+        defaultTargetType: 'L', // L=location
         defaultChannel: 'info',
         messageFormat: { type: 'string', target_location: 'string', content: 'string' },
         ticketField: 'ticket',
@@ -155,7 +155,7 @@ async function seedDatabase() {
 
     // Mapeo de nodos a ubicaciones
     await NodeLocationMapping.bulkCreate([
-      { nodeId: 'NODE_CARDIO', locationId: 'AREA_CARDIO', showChildren: true, active: true }
+      { nodeId: 'NODE_CARDIO', locationId: 'CONSULTA_3', showChildren: false, active: true }
     ]);
 
     console.log('Datos de ejemplo insertados correctamente');
