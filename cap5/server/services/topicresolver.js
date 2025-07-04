@@ -12,33 +12,41 @@
 const { Location, ServicePoint, DisplayNode } = require('../models');
 
 class TopicResolver {
+  #prefix = '';
+
+  constructor(prefix = 'spptze') {
+    this.#prefix = prefix;
+    console.log('(init) TopicrResolver; prefix:', this.#prefix);
+  }
+
   /**
    * Construye el topic MQTT para un mensaje
    * @param {string} targetType - 'service_point' o 'location'
    * @param {string} targetId - ID del destino
    * @returns {Promise<string>} Topic MQTT completo
    */
-  static async buildTopic(targetType, targetId) {
+  async buildTopic(targetType, targetId) {
     if (targetType === 'service_point') {
-      // Comprobar que el punto de servicio existe
-      const servicePoint = await ServicePoint.findByPk(targetId);
-      if (!servicePoint) throw new Error(`ServicePoint ${targetId} not found`);
-      return `spptze/messages/sp/${targetId}`;
+      // No es necesario comprobar la existencia en BD del punto de servicio, se acaba de obtener el Id a
+      // partir de su externalId
+      return `${prefix}/messages/sp/${targetId}`;
     } else {
       // Comprobar que la ubicación existe
       const location = await Location.findByPk(targetId);
       if (!location) throw new Error(`Location ${targetId} not found`);
 
-      const path = await location.getPath(); // Método existente en modelo Sequelize de Location
+      const path = await location.getPath(); // Método definido en modelo Sequelize de Location
       const pathStr = path.map(loc => loc.id).join('/');
-      return `spptze/messages/loc/${pathStr}`;
+      return `${this.#prefix}/messages/loc/${pathStr}`;
     }
   }
 
   /**
-   * Calcula suscripciones MQTT para un nodo
+   * Calcula el conjunto de suscripciones MQTT para un nodo en función de sus ubicaciones asociadas
+   * @param {string} nodeId - ID del nodo de visualización
+   * @returns {Promise<string[]>} Lista de topics MQTT a los que suscribirse
    */
-  static async getNodeSubscriptions(nodeId) {
+  async getNodeSubscriptions(nodeId) {
     const node = await DisplayNode.findByPk(nodeId, {
       include: [Location]
     });
@@ -52,7 +60,7 @@ class TopicResolver {
       
       // Si showChildren=true, suscribirse a hijos también
       const suffix = location.NodeLocationMapping?.showChildren ? '/#' : '';
-      subscriptions.push(`spptze/messages/loc/${pathStr}${suffix}`);
+      subscriptions.push(`${this.#prefix}/messages/loc/${pathStr}${suffix}`);
     }
     
     return subscriptions;

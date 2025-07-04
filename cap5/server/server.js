@@ -17,6 +17,9 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const OpenApiValidator = require('express-openapi-validator');
 const rateLimit = require('express-rate-limit');
+const ShortUniqueId = require('short-unique-id');
+
+const uid = new ShortUniqueId();
 
 // Modelos y configuración BD
 const { testConnection, syncDatabase } = require('./config/database');
@@ -116,7 +119,7 @@ const swaggerOptions = {
             id: {
               type: 'string',
               description: 'Identificador único del mensaje',
-              example: 'MSG_1640995200000_abc12'
+              example: 'ABCDEF0123456789'
             },
             status: {
               type: 'string',
@@ -240,6 +243,20 @@ const authenticateAPI = async (req, res, next) => {
 };
 
 
+// ASIGNACIÓN DE IDENTIFICADOR ÚNICO A LA PETICIÓN
+// =============================================================
+const assingReqUID = (req, res, next) => {
+  // El método stamp() añade el timestamp en el UID, de manera que éste ya no es totalmente aleatorio como con rnd().
+  // De todas formas habría que generar miles de UIDs en el mismo segundo para que hubiese un riesgo real de colisión.
+  // La parte buena es que de este modo la raíz del UID es lexicográficamente ordenable y su impacto negativo en el
+  // índice (por fragmentación) se reduce
+  //TODO decidir
+  const requestId = uid.rnd(16);
+  req.requestId = requestId;
+  res.set('X-Request-Id', requestId);
+  next();
+};
+
 // VALIDACIÓN DE IPs
 // =============================================================
 //TODO, portar de ../api-poc/server.js
@@ -337,19 +354,11 @@ app.get('/api/v1', (req, res) => {
  */
 apiRouter.post('/messages', async (req, res) => {
   try {
-    const { ticket, content, target, targetType = 'service_point', priority = 1, channel = 'calls', externalRef } = req.body;
+    const { ticket, content, target, targetType, priority = 1, channel = 'calls', externalRef } = req.body;
     
-    // Validaciones básicas
-    if (!content || !target) {
-      return res.status(400).json({ 
-        error: 'Missing required fields',
-        required: ['content', 'target']
-      });
-    }
-
     // Crear mensaje
     const messageData = {
-      id: generateMessageId(),
+      id: req.requestId,
       ticket,
       content,
       priority,
@@ -359,9 +368,16 @@ apiRouter.post('/messages', async (req, res) => {
       expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 minutos
     };
 
+    // Si la petición no incluye el tipo de destino, usar el valor por defecto del origen
+    if (!targetType) {
+      targetType = (req.system.defaultTargetType == 'S') ? 'service_point' : 'location';
+    }
+
     // Asignar target según tipo
     if (targetType === 'service_point') {
-      messageData.targetServicePointId = target;
+      // Los sistemas externos se refieren a los puntos de servicio por su externalId
+      // Buscar ServicePoint con externalId == target
+      messageData.targetServicePointId = await resolverUtils.resolveServicePoint(req.system.id, target);
     } else {
       messageData.targetLocationId = target;
     }
@@ -372,7 +388,7 @@ apiRouter.post('/messages', async (req, res) => {
     // Resolver nodos objetivo
     const targetNodes = await resolverUtils.resolveMessageTargets(message);
     
-    // Crear registros de entrega (para futura implementación MQTT)
+    // Crear los registros de entrega
     const deliveries = targetNodes.map(node => ({
       messageId: message.id,
       nodeId: node.id,
@@ -550,7 +566,7 @@ function handlePATCHMessageRetire(req, res) {
   }
   
   const removed = messages.splice(index, 1)[0];
-  console.log(`🗑️ Mensaje retirado: ${removed.ticket || removed.id}`);
+  console.log(`Mensaje retirado: ${removed.ticket || removed.id}`);
   
   res.json({ 
     id: removed.id, 
@@ -619,7 +635,7 @@ function handlePATCHMessageRepeat(req, res) {
   };
   
   messages.unshift(repeated);
-  console.log(`🔁 Mensaje repetido: ${repeated.ticket || repeated.id}`);
+  console.log(`Mensaje repetido: ${repeated.ticket || repeated.id}`);
   
   res.json({ 
     id: repeated.id, 
@@ -802,7 +818,7 @@ function handlePOSTNodeControl(req, res) {
     });
   }
   
-  console.log(`🎛️ Control ${action} enviado a ${node.name}${value ? ` (${value})` : ''}`);
+  console.log(`Control ${action} enviado a ${node.name}${value ? ` (${value})` : ''}`);
   
   res.json({
     nodeId: id,
@@ -911,7 +927,7 @@ app.use(OpenApiValidator.middleware({
 }));
 
 // Aplicar middleware a rutas API
-app.use('/api/v1', authenticateAPI, rateLimiter, apiRouter);
+app.use('/api/v1', authenticateAPI, assingReqUID, rateLimiter, apiRouter);
 
 
 // RUTAS WEB

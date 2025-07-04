@@ -109,9 +109,9 @@ async function testAPIIntegration() {
     // 3. Crear mensaje
     console.log('\n·Creando mensaje de prueba...');
     const newMessage = {
-      ticket: 'TEST001',
+      ticket: 'TST123',
       content: 'Mensaje de prueba integración',
-      target: 'SP_CARDIO_03',
+      target: 'CARDIO_MAÑANA_DRG',
       targetType: 'service_point',
       externalRef: 'INTEGRATION_TEST'
     };
@@ -163,7 +163,7 @@ async function testEndToEndFlow() {
     const hospitalCall = {
       ticket: 'E2E_TEST',
       content: 'Turno E2E_TEST - Consulta 3 (Dr. García)',
-      target: 'SP_CARDIO_03',
+      target: 'CARDIO_TARDE_DRG',
       externalRef: 'CITA_E2E_12345'
     };
 

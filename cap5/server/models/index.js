@@ -68,14 +68,22 @@ const resolverUtils = {
           attributes: []
         }
       }],
-      where: { status: 'active' }
+      where: { active: true }
     });
     
     return nodes;
   },
 
+  async resolveServicePoint(sourceSystemId, externalId) {
+    const servicePoint = await models.ServicePoint.findOne({
+      where: {sourceSystemId: sourceSystemId, externalId: externalId}
+    });
+    if (!servicePoint) throw new Error('Service point not found');
+    return servicePoint.id;
+  },
+
   /**
-   * Resuelve un mensaje a todos los nodos que deben mostrarlo
+   * Resuelve el conjunto de nodos en el que debe mostrarse un mensaje
    */
   async resolveMessageTargets(message) {
     let targetLocations = [];
