@@ -10,21 +10,22 @@
     "test": "node --env-file=.env scripts/test-integration.js",
     "db:install-driver": "node --env-file=.env scripts/install-db-driver.js"
   },
-  "keywords": ["spptze", "queue", "display", "api", "hospital" ],
+  "keywords": [ "spptze", "queue", "display", "api", "mqtt", "sequelize", "express" ],
   "author": "Francisco José Aquino García",
   "license": "MIT",
   "dependencies": {
+    "commander": "^14.0.0",
+    "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-openapi-validator": "^5.5.7",
-    "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1",
     "express-rate-limit": "^7.5.0",
-    "cors": "^2.8.5",
     "helmet": "^7.1.0",
-    "sequelize": "^6.37.7",
-    "commander": "^14.0.0",
     "ipaddr.js": "^2.2.0",
-    "mqtt": "^5.13.1"
+    "mqtt": "^5.13.1",
+    "sequelize": "^6.37.7",
+    "short-unique-id": "^5.3.2",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
@@ -34,6 +35,6 @@
   },
   "volta": {
     "node": "22.16.0",
-    "npm": "11.4.1"
+    "npm": "11.4.2"
   }
 }
