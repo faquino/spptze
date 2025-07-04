@@ -7,6 +7,7 @@
 
 // =============================================================
 // SPPTZE - Servidor central: ORM + API + Interfaces web
+// cap5/server/src/server.js
 // =============================================================
 const crypto = require('crypto');
 const express = require('express');
@@ -32,6 +33,9 @@ const {
   MessageDelivery,
   resolverUtils 
 } = require('./models');
+
+const TopicResolver = require('./services/topicresolver');
+const MQTTService = require('./services/mqttService');
 
 const app = express();
 

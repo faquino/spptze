@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - RESOLUCIÓN DE DESTINOS A TOPICS MQTT
-// cap5/server/services/topicresolver.js
+// cap5/server/src/services/topicresolver.js
 // =============================================================
 const { Location, ServicePoint, DisplayNode } = require('../models');
 
@@ -67,4 +67,4 @@ class TopicResolver {
   }
 }
 
-module.exports = TopicResolver;
+module.exports = new TopicResolver('spptze');

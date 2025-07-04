@@ -7,6 +7,7 @@
  
 // =============================================================
 // SPPTZE - MODELOS SEQUELIZE
+// cap5/server/src/models/definitions.js
 // =============================================================
 // Se usa en algunas tablas created_At junto con timestamps: false deliberadamente. Con timestamps: true
 // Sequelize gestiona la actualización de los campos created_at y/o updated_at automágicamente, característica

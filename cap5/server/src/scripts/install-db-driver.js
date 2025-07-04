@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - INSTALACIÓN DE DRIVERS DE BASE DE DATOS
-// cap5/server/scripts/install-db-driver.js
+// cap5/server/src/scripts/install-db-driver.js
 // =============================================================
 const { execSync } = require('child_process');
 const fs = require('fs');

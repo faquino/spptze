@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - SETUP BASE DE DATOS CON SEQUELIZE
-// cap5/server/scripts/seed.js
+// cap5/server/src/scripts/seed.js
 // =============================================================
 const { sequelize, testConnection, syncDatabase } = require('../config/database');
 // Importar las funciones de definición de modelos

@@ -7,6 +7,7 @@
 
 // =============================================================
 // SPPTZE - Configuración de base de datos via Sequelize ORM
+// cap5/server/src/config/database.js
 // =============================================================
 const { Sequelize } = require('sequelize');
 const path = require('path');

@@ -7,6 +7,7 @@
 
 // =============================================================
 // SPPTZE - Pruebas de integración API + BD
+// cap5/server/src/scripts/test-integrations.js
 // =============================================================
 const { testConnection } = require('../config/database');
 const { ExternalSystem, ServicePoint, Message, resolverUtils } = require('../models');
