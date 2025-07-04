@@ -388,21 +388,26 @@ apiRouter.post('/messages', async (req, res) => {
 
     // Guardar mensaje en BD
     const message = await Message.create(messageData);
+
+    // Resolver el topic a usar para publicar el mensaje
+    const topic = await TopicResolver.buildTopic(targetType, targetType === 'service_point' ? messageData.targetServicePointId : messageData.targetLocationId);
     
-    // Resolver nodos objetivo
-    const targetNodes = await resolverUtils.resolveMessageTargets(message);
+    // Calcular los nodos destino
+    const targetNodes = await TopicResolver.getTargetNodes(message);
+//    const targetNodes = await resolverUtils.resolveMessageTargets(message);
     
     // Crear los registros de entrega
     const deliveries = targetNodes.map(node => ({
       messageId: message.id,
-      nodeId: node.id,
-      status: 'pending'
+      nodeId: node.id
     }));
     
     if (deliveries.length > 0) {
       await MessageDelivery.bulkCreate(deliveries);
+      // await?
+      MQTTService.publishMessage(topic, message);
     }
-
+    
     console.log(`Nueva llamada: ${ticket || 'N/A'} - ${content} -> ${targetNodes.length} nodos`);
     
     res.status(201).json({ 
@@ -976,16 +981,64 @@ app.use((error, req, res, next) => {
 });
 
 
-// INICIALIZACIÓN
+// INICIALIZACIÓN DE SERVICIOS
 // =============================================================
-async function startServer() {
+async function initializeServices() {
   try {
+    console.log('Iniciando servicios...');
+    
     // Probar conexión BD
     await testConnection();
     
     // Sincronizar esquema
     await syncDatabase(false);
     
+    // Conexión MQTT
+    const mqttBrokerUrl = process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883';
+    const mqttOpts = {};
+    if (process.env.MQTT_PASS && process.env.MQTT_USER) {
+      mqttOpts.username = process.env.MQTT_USER;
+      mqttOpts.password = process.env.MQTT_PASS;
+    }
+    await MQTTService.connect(mqttBrokerUrl, mqttOpts);
+    console.log('MQTT conectado');
+    
+    console.log('Servicios iniciados correctamente');
+  } catch (error) {
+    console.error('Error iniciando servicios:', error);
+    process.exit(1);
+  }
+}
+
+
+// MANEJO DE CIERRE ORDENADO
+// =============================================================
+async function gracefulShutdown() {
+  console.log('Cerrando servicios...');
+  
+  try {
+    await MQTTService.disconnect();
+    console.log('MQTT desconectado');
+    
+    process.exit(0);
+  } catch (error) {
+    console.error('Error cerrando servicios:', error);
+    process.exit(1);
+  }
+}
+
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+
+
+// INICIALIZACIÓN
+// =============================================================
+async function startServer() {
+  try {
+    //
+    await initializeServices();
+
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
       console.log('SPPTZE Server started successfully');

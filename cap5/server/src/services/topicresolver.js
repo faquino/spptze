@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - RESOLUCIÓN DE DESTINOS A TOPICS MQTT
-// cap5/server/src/services/topicresolver.js
+// cap5/server/src/services/topicResolver.js
 // =============================================================
 const { Location, ServicePoint, DisplayNode } = require('../models');
 
@@ -29,7 +29,7 @@ class TopicResolver {
     if (targetType === 'service_point') {
       // No es necesario comprobar la existencia en BD del punto de servicio, se acaba de obtener el Id a
       // partir de su externalId
-      return `${prefix}/messages/sp/${targetId}`;
+      return `${this.#prefix}/messages/sp/${targetId}`;
     } else {
       // Comprobar que la ubicación existe
       const location = await Location.findByPk(targetId);
@@ -65,6 +65,83 @@ class TopicResolver {
     
     return subscriptions;
   }
+
+  /**
+   * Obtener nodos que deben recibir un mensaje
+   * @param {Object} message - Instancia del modelo Message
+   * @returns {Promise<Array>} Array de instancias DisplayNode
+   */
+  async getTargetNodes(message) {
+    let targetLocations = [];
+    
+    if (message.targetLocationId) {
+      // Mensaje directo a ubicación
+      const location = await Location.findByPk(message.targetLocationId);
+      if (!location) {
+        throw new Error(`Location ${message.targetLocationId} not found`);
+      }
+      targetLocations = [location];
+    } else {
+      // Mensaje a service point - obtener ubicaciones asociadas
+      const servicePoint = await ServicePoint.findByPk(message.targetServicePointId, {
+        include: [Location]
+      });
+      if (!servicePoint) {
+        throw new Error(`ServicePoint ${message.targetServicePointId} not found`);
+      }
+      targetLocations = servicePoint.Locations;
+    }
+    
+    const targetNodesMap = new Map(); // nodeId -> node instance
+    
+    for (const location of targetLocations) {
+      // Nodos directamente asociados a esta ubicación
+      const directNodes = await location.getDisplayNodes({
+        through: { where: { active: true } }
+      });
+      directNodes.forEach(node => {
+        if (node.active) targetNodesMap.set(node.id, node);
+      });
+      
+      // Nodos asociados a ubicaciones ancestras con showChildren: true
+      const ancestorNodes = await this.getAncestorNodesWithShowChildren(location);
+      ancestorNodes.forEach(node => targetNodesMap.set(node.id, node));
+    }
+    
+    return Array.from(targetNodesMap.values());
+  }
+
+  /**
+   * Obtener nodos de ubicaciones ancestras que tienen showChildren: true
+   * @param {Object} location - Instancia del modelo Location
+   * @returns {Promise<Array>} Array de instancias DisplayNode
+   */
+  async getAncestorNodesWithShowChildren(location) {
+    const ancestorNodes = new Map(); // nodeId -> node instance
+    const path = await location.getPath();
+    
+    // Recorrer ancestros (excluyendo la ubicación actual)
+    for (let i = 0; i < path.length - 1; i++) {
+      const ancestor = path[i];
+      
+      // Buscar nodos de este ancestro con showChildren: true
+      const nodes = await ancestor.getDisplayNodes({
+        through: { 
+          where: { 
+            showChildren: true,
+            active: true 
+          } 
+        }
+      });
+      
+      nodes.forEach(node => {
+        if (node.active) ancestorNodes.set(node.id, node);
+      });
+    }
+    
+    return Array.from(ancestorNodes.values());
+  }
+
 }
 
 module.exports = new TopicResolver('spptze');
