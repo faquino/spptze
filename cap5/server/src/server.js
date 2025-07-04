@@ -180,7 +180,7 @@ const swaggerOptions = {
       }
     ]
   },
-  apis: ['./server.js'], // Archivos que contienen anotaciones JSDoc
+  apis: ['./src/server.js'], // Archivos que contienen anotaciones JSDoc
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);

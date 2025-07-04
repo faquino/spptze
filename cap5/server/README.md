@@ -71,6 +71,7 @@ Se incluye un *stack* mínimo para iniciar un gestor de base de datos (PostgreSQ
 - `npm start` - Inicia servidor (preserva datos existentes)
 - `npm run dev` - Inicia servidor con nodemon para desarrollo
 - `npm run seed` - Crea el esquema de base de datos con datos de ejemplo. ⚠️**Elimina el contenido existente en la base de datos**⚠️.
+- `npm run db:install-driver` - Instala los drivers de base de datos según ORM_DIALECT (no se incluyen dependencias de drivers en `package.json`)
 - `npm test` - Ejecuta pruebas de integración
 
 ## Endpoints principales
