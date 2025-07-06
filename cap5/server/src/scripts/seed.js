@@ -148,8 +148,7 @@ async function seedDatabase() {
         hostname: 'rpi-cardio-01',
         hardwareModel: 'Raspberry Pi 4B',
         active: 'true',
-        templateOverrideId: null,
-        lastSeen: new Date()
+        templateOverrideId: null
       }
     ]);
 

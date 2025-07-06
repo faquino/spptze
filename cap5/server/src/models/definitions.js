@@ -300,7 +300,7 @@ const DisplayNode = (sequelize) => {
     macAddress: { type: DataTypes.STRING(12), allowNull: true, field: 'mac_address',
       comment: 'Seis bytes codificados en hexadecimal, sin separadores',
       set(value) {
-        this.setDataValue('mac_address', value ? value.replace(/[:-\s\.]/g, '').toUpperCase() : value);
+        this.setDataValue('macAddress', value ? value.replace(/[:-\s\.]/g, '').toUpperCase() : value);
       },
       validate: {
         isValidMAC(value) {
@@ -327,6 +327,7 @@ const DisplayNode = (sequelize) => {
     timestamps: false,
     comment: 'Nodos de visualización inventariados en el sistema',
     indexes: [
+      { fields: ['serial_number'], unique: true },
       { fields: ['active'] },
       { fields: ['template_override_id'] },
       { fields: ['last_seen'] }
@@ -587,16 +588,19 @@ const MessageDelivery = (sequelize) => {
       onUpdate: 'CASCADE'
     },
     createdAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW, field: 'created_at',
-      comment: 'Timestamp de creación de la tupla'
-     },
+      comment: 'Timestamp de creación de la tupla (RTC servidor central)'
+    },
     deliveredAt: { type: DataTypes.DATE, allowNull: true, field: 'delivered_at',
-      comment: 'Timestamp de entrega del mensaje al nodo'
-     },
+      comment: 'Timestamp de entrega del mensaje al nodo (RTC nodo de visualización)'
+    },
+    displayedAt: { type: DataTypes.DATE, allowNull: true, field: 'displayed_at',
+      comment: 'Timestamp de visualización del mensaje en el nodo (RTC nodo de visualización)'
+    },
     acknowledgedAt: { type: DataTypes.DATE, allowNull: true, field: 'acknowledged_at',
-      comment: 'Timestamp de entrega del mensaje de ACK del nodo'
-     },
+      comment: 'Timestamp de entrega del mensaje de ACK del nodo (RTC servidor central)'
+    },
     retractedAt: { type: DataTypes.DATE, allowNull: true, field: 'retracted_at',
-      comment: 'Timestamp del informe de retirada del mensaje por parte del nodo'
+      comment: 'Timestamp del informe de retirada del mensaje por parte del nodo (RTC servidor central)'
     },
     acknowledged: {
       type: DataTypes.VIRTUAL,
@@ -609,14 +613,22 @@ const MessageDelivery = (sequelize) => {
     indexes: [
       { fields: ['created_at'] },
       { fields: ['delivered_at'] },
+      { fields: ['displayed_at'] },
       { fields: ['acknowledged_at'] },
       { fields: ['retracted_at'] }
     ],
     validate: {
-      // No se valida deliveredAt por si hubiese desajuste entre los relojes del servidor y el nodo
+      // Idealmente createdAt < deliveredAt < displayedAt < acknowledgedAt, sin embargo los campos
+      // deliveredAt y displayedAt corresponden al reloj del nodo de visualización, mientras que
+      // createdAt y acknowledgedAt son medidos por el reloj del servidor central; no se intentan validaciones
+      // entre las medidas de diferentes relojes por los probables desajustes entre ambos
       ackAfterCreate() {
-        if (this.acknowledgedAt && (this.acknowledgedAt <= this.createdAt))
-            throw new Error('ACK time must be after creation time');
+        if (this.acknowledgedAt && (this.acknowledgedAt < this.createdAt))
+          throw new Error('ACK time must be after creation time');
+      },
+      displayAfterDelivery() {
+        if (this.deliveredAt && this.displayedAt && (this.displayedAt < this.deliveredAt))
+          throw new Error('Display time must be after delivery time');
       }
     }
   });
