@@ -6,7 +6,7 @@
  */
 
 // =============================================================
-// SPPTZE - CLIENTE MQTT
+// SPPTZE - CLIENTE MQTT (SERVIDOR CENTRAL)
 // cap5/server/src/services/mqttService.js
 // =============================================================
 const mqtt = require('mqtt');
@@ -40,11 +40,11 @@ class MQTTService extends EventEmitter {
         this.isConnected = true;
         
         // Suscribirse a topics del sistema
-        this.client.subscribe('spptze/system/nodeup/+', (err) => {
+        this.client.subscribe('spptze/system/nodeup', (err) => {
           if (err) console.error('MQTT: Error subscribing to nodeup:', err);
         });
         
-        this.client.subscribe('spptze/system/ack/+', (err) => {
+        this.client.subscribe('spptze/messages/ack', (err) => {
           if (err) console.error('MQTT: Error subscribing to ack:', err);
         });
         
@@ -109,9 +109,9 @@ class MQTTService extends EventEmitter {
     try {
       const payload = JSON.parse(message.toString());
       
-      if (topic.startsWith('spptze/system/nodeup/')) {
+      if (topic === 'spptze/system/nodeup') {
         await this.handleNodeUp(topic, payload);
-      } else if (topic.startsWith('spptze/system/ack/')) {
+      } else if (topic === 'spptze/messages/ack') {
         await this.handleMessageAck(topic, payload);
       }
       
@@ -126,30 +126,29 @@ class MQTTService extends EventEmitter {
    * Manejar evento de nodo conectándose
    */
   async handleNodeUp(topic, payload) {
-    const nodeId = topic.split('/').pop();
-    console.log(`MQTT: Node ${nodeId} coming up`);
+    console.log(`MQTT: Node ${payload.serialNumber} coming up`);
     
     try {
-      // Actualizar última vez visto
-      await nodeManager.updateLastSeen(nodeId);
+      // Obtener el nodo por el número de serie
+      const node = await nodeManager.getNodeBySN(payload.serialNumber);
       
       // Obtener suscripciones para el nodo
-      const subscriptions = await nodeManager.getNodeSubscriptions(nodeId);
+      const subscriptions = await nodeManager.getNodeSubscriptions(node);
       
       // Enviar configuración de suscripciones al nodo
       const response = {
-        subscriptions,
-        timestamp: new Date().toISOString()
+        nodeId: node.id,
+        subs: subscriptions
       };
       
-      await this.publish(`spptze/system/config/${nodeId}`, response);
+      await this.publish(`spptze/system/nodes/${payload.serialNumber}`, response);
       
-      // Guardar suscripciones en memoria para tracking
-      this.nodeSubscriptions.set(nodeId, subscriptions);
+      // Guardar suscripciones en memoria para... tracking?
+      this.nodeSubscriptions.set(node.id, subscriptions);
       
-      console.log(`MQTT: Sent ${subscriptions.length} subscriptions to ${nodeId}`);
+      console.log(`MQTT: Sent ${subscriptions.length} subscriptions to ${payload.serialNumber}`);
     } catch (error) {
-      console.error(`MQTT: Error configuring node ${nodeId}:`, error);
+      console.error(`MQTT: Error configuring node ${payload.serialNumber}:`, error);
     }
   }
 
@@ -157,11 +156,13 @@ class MQTTService extends EventEmitter {
    * Manejar ACK de mensaje
    */
   async handleMessageAck(topic, payload) {
-    const nodeId = topic.split('/').pop();
-    console.log(`MQTT: ACK from ${nodeId}:`, payload);
-    
+    // Hay que actualizar la tupla correspondiente en MessageDelivery (deliveredAt, displayedAt y acknowledgedAt),
+    // además del campo lastSeen en DisplayNode
+    console.log(`MQTT: ACK from ${payload.nodeId}`);
+  
     // Emitir evento para actualizar MessageDelivery
-    this.emit('messageAck', { nodeId, ...payload });
+    await nodeManager.messageAck(payload);
+//    this.emit('messageAck', { nodeId, ...payload });
   }
 
   /**
@@ -174,7 +175,7 @@ class MQTTService extends EventEmitter {
       ticket: message.ticket,
       content: message.content,
       priority: message.priority,
-      timestamp: message.createdAt
+      createdAt: message.createdAt
     };
 
     await this.publish(topic, messageData, { qos: 1 });

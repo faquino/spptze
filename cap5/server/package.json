@@ -2,7 +2,7 @@
   "name": "spptze-server",
   "version": "1.0.0",
   "description": "SPPTZE - Servidor central con API REST + Sequelize ORM + cliente MQTT",
-  "main": "server.js",
+  "main": "./src/server.js",
   "scripts": {
     "start": "node --env-file=.env ./src/server.js",
     "dev": "nodemon --env-file=.env ./src/server.js",

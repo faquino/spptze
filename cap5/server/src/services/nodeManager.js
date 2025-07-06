@@ -9,14 +9,15 @@
 // SPPTZE - GESTOR DE NODOS
 // cap5/server/src/services/nodeManager.js
 // =============================================================
-const { DisplayNode, Location, ServicePoint } = require('../models');
+const { DisplayNode, Location, MessageDelivery, ServicePoint } = require('../models');
 
 class NodeManager {
   
   /**
-   * Construir el conjunto de suscripciones MQTT para un nodo
+   * Construir el conjunto de suscripciones MQTT para un nodo - NO USADO
    */
-  async getNodeSubscriptions(nodeId) {
+/*
+  async getNodeSubscriptionsByID(nodeId) {
     const node = await DisplayNode.findByPk(nodeId, {
       include: [{
         model: Location,
@@ -54,6 +55,68 @@ class NodeManager {
     }
     
     return Array.from(subscriptions);
+  }
+*/
+
+  /**
+   * Construir suscripciones MQTT para un nodo
+   * @param {Object} node - Instancia del modelo DisplayNode
+   * @returns {Promise<Array<string>>} Array de topics MQTT
+   */
+  async getNodeSubscriptions(node) {
+    if (!node || !node.active) {
+      throw new Error(`Node must be active`);
+    }
+
+    // Cargar ubicaciones si no están incluidas
+    if (!node.Locations) {
+      await node.reload({
+        include: [{
+          model: Location,
+          through: { 
+            attributes: ['showChildren'],
+            where: { active: true }
+          }
+        }]
+      });
+    }
+
+    const subscriptions = new Set();
+    
+    for (const location of node.Locations) {
+      const showChildren = location.NodeLocationMapping.showChildren;
+      
+      // Construir topic base para la ubicación
+      const path = await location.getPath();
+      const topicBase = `spptze/messages/loc/${path.map(l => l.id).join('/')}`;
+      
+      if (showChildren) {
+        // Suscripción con wildcard para incluir descendientes
+        subscriptions.add(`${topicBase}/#`);
+      } else {
+        // Suscripción exacta solo a esta ubicación
+        subscriptions.add(topicBase);
+      }
+      
+      // Añadir suscripciones a service points relacionados con esta ubicación
+      const servicePointSubs = await this.getServicePointSubscriptions(location);
+      servicePointSubs.forEach(sub => subscriptions.add(sub));
+    }
+    
+    return Array.from(subscriptions);
+  }
+
+  async messageAck(payload) {
+    const node = await this.getNodeBySN(payload.nodeSerial);
+    if (!node) throw new Error(`Node ${payload.nodeId} not found`);
+    
+    // Actualizar delivery record (messageId, nodeId)
+    const deliveryInfo = { acknowledgedAt: new Date() };
+    if (payload.deliveredAt) deliveryInfo.deliveredAt = new Date(payload.deliveredAt);
+    if (payload.displayedAt) deliveryInfo.displayedAt = new Date(payload.displayedAt);
+    const delivery = await MessageDelivery.findOne({ where: { messageId: payload.id, nodeId: node.id } });
+    if (!delivery) throw new Error(`Message delivery record not found for message ${payload.id} and node ${node.id}`);
+    await delivery.update(deliveryInfo);
   }
 
   /**
@@ -96,6 +159,17 @@ class NodeManager {
         }
       ]
     });
+  }
+
+  async getNodeBySN(serial) {
+    const displayNode = await DisplayNode.findOne({ where: { serialNumber: serial } });
+    if (!displayNode) {
+      throw new Error(`Node with serial ${serial} not found`);
+    } else {
+      displayNode.lastSeen = new Date();
+      await displayNode.save();
+    }
+    return displayNode;
   }
 
   /**
