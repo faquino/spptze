@@ -46,14 +46,10 @@ const getSerial = () => {
   try {
     const lines = fs.readFileSync('/proc/cpuinfo', 'utf8').split('\n');
   
-    var x = 0;
-    var serial_line = "";
-    while (x < lines.length) {
-      serial_line = lines[x];
+    for (const serial_line of lines) {
       if (serial_line.startsWith("Serial")) {
         return serial_line.split(":")[1].slice(1);
       }
-      x++;
     }
   } catch (error) {
     // Si no es posible leer /proc/cpuinfo, usar el número de serie definido en .env
@@ -64,7 +60,7 @@ const getSerial = () => {
 const defIfInfo = getDefaultInterfaceInfo();
 const mqttClient = new MQTTService(getSerial());
 
-mqttClient.on('spptze:mqtt:message', (topic, payload) => {
+mqttClient.on('spptze:player:mqtt:message', (topic, payload) => {
   // El mensaje recibido vía MQTT se envía a los clientes WebSocket
   socketServer.clients.forEach( (client) => {
     client.send(JSON.stringify(payload));
@@ -79,8 +75,8 @@ const displayEnvironmentInfo = () => {
   
   var salidaComando = 0;  // util para retener temporalmente salida de ejecucion de comando
   var modoPantallasConfiguradas = "X"; // OJO: numero de pantallas activas detectadas puede ser "A" "B" y "AB"
-  var estaPantallaAConfigurada = 0; // Correspondiente al hdmi-1
-  var estaPantallaBConfigurada = 0; // Correspondiente al hdmi-2
+  var estaPantallaAConfigurada = 0; // Correspondiente al HDMI-1
+  var estaPantallaBConfigurada = 0; // Correspondiente al HDMI-2
   var estaPantallaAEncendida = 0; // cec
   var estaPantallaBEncendida = 0; // cec
   var estaClonadaAenB = 0;
@@ -104,7 +100,7 @@ const displayEnvironmentInfo = () => {
   // 10) - fin 
   
   
-  //  20) ver configuración de los hdmi y saber estado
+  //  20) ver configuración de los HDMI y saber estado
   //      ============================================================================
   salidaComando = 0;
   // Hay dos posibilidades, usar el kmsprint o usar xrandr, me decanto por la segunda

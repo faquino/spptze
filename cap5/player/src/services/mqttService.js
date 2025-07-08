@@ -13,6 +13,7 @@ const mqtt = require('mqtt');
 const EventEmitter = require('events');
 
 
+
 class MQTTService extends EventEmitter {
   constructor(serialNo) {
     super();
@@ -21,8 +22,16 @@ class MQTTService extends EventEmitter {
     this.client = null;
     this.isConnected = false;
     this.nodeSubscriptions = []; // nodeId -> [topics]
+    this.heartbeatInterval = null;
   }
-
+  
+  setupHeartbeat(intervalSecs) {
+    if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+    this.heartbeatInterval = setInterval(() => {
+      this.publishHeartbeat();
+    }, intervalSecs * 1000);
+  }
+  
   /**
    * Conectar al bróker MQTT
    */
@@ -65,6 +74,12 @@ class MQTTService extends EventEmitter {
     this.publish('spptze/messages/ack', { nodeId: this.nodeId, nodeSerial: this.serialNumber, ...message });
   }
 
+
+  async publishHeartbeat() {
+    if (!this.isConnected) throw new Error('MQTT client not connected');
+    this.publish('spptze/system/heartbeat', { serialNumber: this.serialNumber });
+  }
+
   /**
    * Publicar mensaje (data) en un topic
    * @param {string} topic - Topic MQTT en el que publicar el mensaje
@@ -72,9 +87,7 @@ class MQTTService extends EventEmitter {
    * @param {Object} [options] - Opciones de publicación (QoS, retain, etc.)
    */
   async publish(topic, data, options = {}) {
-    if (!this.isConnected) {
-      throw new Error('MQTT client not connected');
-    }
+    if (!this.isConnected) throw new Error('MQTT client not connected');
 
     const payload = typeof data === 'string' ? data : JSON.stringify(data);
 
@@ -103,7 +116,9 @@ class MQTTService extends EventEmitter {
       } else if (topic.startsWith('spptze/messages/')) {
         // Mensaje de llamada de turno
         payload.deliveredAt = ahora;
-        this.emit('spptze:mqtt:message', topic, payload);  // a manejar en player.js
+        this.emit('spptze:player:mqtt:message', topic, payload);  // a manejar en player.js
+      } else {
+        throw new Error(`No handler for topic '${topic}'`);
       }
     } catch (error) {
       console.error('MQTT: Error handling message:', error);
@@ -114,6 +129,7 @@ class MQTTService extends EventEmitter {
   async handleMessageSubs(payload) {
     console.log(`MQTT: Received subscriptions for ${this.serialNumber} (${payload.subs.length} topics)`);
     if (payload.nodeId) this.nodeId = payload.nodeId;
+    if (payload.heartbeatInterval) this.setupHeartbeat(payload.heartbeatInterval);
     // Limpiar suscripciones previas
     while (this.nodeSubscriptions.length > 0) {
       const sub = this.nodeSubscriptions.pop();

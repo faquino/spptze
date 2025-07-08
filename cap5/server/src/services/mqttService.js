@@ -34,20 +34,25 @@ class MQTTService extends EventEmitter {
 
     return new Promise((resolve, reject) => {
       this.client = mqtt.connect(brokerUrl, defaultOptions);
-      
+
       this.client.on('connect', () => {
         console.log('MQTT: Connected to broker');
         this.isConnected = true;
-        
+
         // Suscribirse a topics del sistema
         this.client.subscribe('spptze/system/nodeup', (err) => {
           if (err) console.error('MQTT: Error subscribing to nodeup:', err);
         });
-        
+
+        // Suscribirse a topics del sistema
+        this.client.subscribe('spptze/system/heartbeat', (err) => {
+          if (err) console.error('MQTT: Error subscribing to heartbeat:', err);
+        });
+
         this.client.subscribe('spptze/messages/ack', (err) => {
           if (err) console.error('MQTT: Error subscribing to ack:', err);
         });
-        
+
         resolve();
       });
 
@@ -111,8 +116,12 @@ class MQTTService extends EventEmitter {
       
       if (topic === 'spptze/system/nodeup') {
         await this.handleNodeUp(topic, payload);
+      } else if (topic === 'spptze/system/heartbeat') {
+        await this.handleNodeHeartbeat(topic, payload);
       } else if (topic === 'spptze/messages/ack') {
         await this.handleMessageAck(topic, payload);
+      } else {
+        throw new Error(`No handler for topic: '${topic}'`)
       }
       
       // Emitir evento para otros componentes
@@ -138,6 +147,7 @@ class MQTTService extends EventEmitter {
       // Enviar configuración de suscripciones al nodo
       const response = {
         nodeId: node.id,
+        heartbeatInterval: process.env.HEARTBEAT_INTERVAL || 30,
         subs: subscriptions
       };
       
@@ -153,7 +163,17 @@ class MQTTService extends EventEmitter {
   }
 
   /**
-   * Manejar ACK de mensaje
+   * Manejar heartbeat de un nodo
+   * @param {string} topic 
+   * @param {object} payload 
+   */
+  async handleNodeHeartbeat(topic, payload) {
+    await nodeManager.getNodeBySN(payload.serialNumber);
+    //TODO: Simplemente se refresca lastSeen del nodo en cuestión, pero el heartbeat podría proporcionar más info
+  }
+
+  /**
+   * Manejar ACK de un mensaje
    */
   async handleMessageAck(topic, payload) {
     // Hay que actualizar la tupla correspondiente en MessageDelivery (deliveredAt, displayedAt y acknowledgedAt),
