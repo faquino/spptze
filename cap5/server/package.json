@@ -8,7 +8,8 @@
     "dev": "nodemon --env-file=.env ./src/server.js",
     "seed": "node --env-file=.env ./src/scripts/seed.js",
     "test": "node --env-file=.env ./src/scripts/test-integration.js",
-    "db:install-driver": "node --env-file=.env ./src/scripts/install-db-driver.js"
+    "db:install-driver": "node --env-file=.env ./src/scripts/install-db-driver.js",
+    "db:generate-data-dict": "node ./src/scripts/generate-data-dict.js"
   },
   "keywords": [ "spptze", "queue", "display", "api", "mqtt", "sequelize", "express" ],
   "author": "Francisco José Aquino García",
