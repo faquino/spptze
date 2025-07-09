@@ -118,7 +118,9 @@ async function seedDatabase() {
 
     // Ubicaciones
     await Location.bulkCreate([
+      { id: 'EDI_PROVI', name: 'Edificio H. Provincial', description: 'Edificio histórico', hierarchyId: 'CH', hierarchyLevelId: 'CH_EDI', parentId: null, templateId: 'TPL_HOSP_DEF' },
       { id: 'EDI_MONTECELO', name: 'Edificio Montecelo', description: 'Edificio principal', hierarchyId: 'CH', hierarchyLevelId: 'CH_EDI', parentId: null, templateId: 'TPL_HOSP_DEF' },
+      { id: 'PLANTA_0_HP', name: 'Planta 0', description: 'Planta baja H. Provincial', hierarchyId: 'CH', hierarchyLevelId: 'CH_PLT', parentId: 'EDI_PROVI', templateId: 'TPL_HOSP_DEF' },
       { id: 'PLANTA_2_MONT', name: 'Planta 2', description: 'Segunda planta del Montecelo', hierarchyId: 'CH', hierarchyLevelId: 'CH_PLT', parentId: 'EDI_MONTECELO', templateId: 'TPL_HOSP_DEF' },
       { id: 'AREA_CARDIO', name: 'Cardiología', description: 'Servicio de Cardiología', hierarchyId: 'CH', hierarchyLevelId: 'CH_ARA', parentId: 'PLANTA_2_MONT', templateId: 'TPL_CARDIO' },
       { id: 'CONSULTA_3', name: 'Consulta 3', description: 'Consulta de Cardiología 3', hierarchyId: 'CH', hierarchyLevelId: 'CH_CON', parentId: 'AREA_CARDIO', templateId: null },
@@ -251,12 +253,12 @@ async function testDatabase() {
       console.log(`Path desde raíz: ${path.map(loc => loc.name).join(' → ')}`);
     }
 
-    // Probar getChildren
+    // Probar getDescendants
     const planta2M = await Location.findByPk('PLANTA_2_MONT');
     if (planta2M) {
-      const children = await planta2M.getChildren();
-      console.log(`\n Ubicación "PLANTA_2_MONT" tiene ${children.length} descendientes:`);
-      children.forEach(child => console.log(`  - ${child.name} (${child.id})`));
+      const descendants = await planta2M.getDescendants();
+      console.log(`\n Ubicación "PLANTA_2_MONT" tiene ${descendants.length} descendientes:`);
+      descendants.forEach(descendant => console.log(`  - ${descendant.name} (${descendant.id})`));
     }
 
     // Probar resolución de service point
@@ -264,7 +266,7 @@ async function testDatabase() {
       include: [{ model: Location }]
     });
     
-    console.log('Service Point:', servicePoint?.name);
+    console.log('\n Service Point:', servicePoint?.name);
     console.log('Ubicaciones:', servicePoint?.Locations?.map(l => l.name));
 
     console.log('\n Todas las pruebas pasaron correctamente');

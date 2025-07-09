@@ -270,13 +270,19 @@ const Location = (sequelize) => {
     return await getEntityPath(sequelize.models.Location, this, 'parentId');
   };
 
-  // Método para obtener las descendientes de una ubicación
+  // Obtener ubicaciones hijas (descendientes inmediatas)
   model.prototype.getChildren = async function() {
-    const immediateChildren = await sequelize.models.Location.findAll({ where: { parentId: this.id } });
-    let retVal = [...immediateChildren];
+    return await sequelize.models.Location.findAll({ where: { parentId: this.id } });
+  };
+
+  // Obtener todas las ubicaciones descendientes
+  model.prototype.getDescendants = async function() {
+    const immediateChildren = await this.getChildren()
+    const retVal = [...immediateChildren];
+    // ... por esto es importante que no haya ciclos
     for (const child of immediateChildren) {
-      const grandChildren = await child.getChildren();
-      retVal = retVal.concat(grandChildren);
+      const grandChildren = await child.getDescendants();
+      retVal.push(...grandChildren);
     }
     return retVal;
   };

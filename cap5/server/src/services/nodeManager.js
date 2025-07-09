@@ -64,42 +64,27 @@ class NodeManager {
    * @returns {Promise<Array<string>>} Array de topics MQTT
    */
   async getNodeSubscriptions(node) {
-    if (!node || !node.active) {
-      throw new Error(`Node must be active`);
-    }
+    if (!node || !node.active) throw new Error(`Node must be active`);
 
     // Cargar ubicaciones si no están incluidas
     if (!node.Locations) {
       await node.reload({
-        include: [{
-          model: Location,
-          through: { 
-            attributes: ['showChildren'],
-            where: { active: true }
-          }
-        }]
+        include: [{ model: Location,
+                    through: { attributes: ['showChildren'], where: { active: true } } }]
       });
     }
 
     const subscriptions = new Set();
-    
     for (const location of node.Locations) {
       const showChildren = location.NodeLocationMapping.showChildren;
       
-      // Construir topic base para la ubicación
+      // Construir topic para la ubicación
       const path = await location.getPath();
       const topicBase = `spptze/messages/loc/${path.map(l => l.id).join('/')}`;
+      subscriptions.add(`${topicBase}${showChildren ? '/#' : ''}`);
       
-      if (showChildren) {
-        // Suscripción con wildcard para incluir descendientes
-        subscriptions.add(`${topicBase}/#`);
-      } else {
-        // Suscripción exacta solo a esta ubicación
-        subscriptions.add(topicBase);
-      }
-      
-      // Añadir suscripciones a service points relacionados con esta ubicación
-      const servicePointSubs = await this.getServicePointSubscriptions(location);
+      // Añadir suscripciones a puntos de servicio relacionados con esta ubicación
+      const servicePointSubs = await this.getServicePointSubscriptions(location, showChildren);
       servicePointSubs.forEach(sub => subscriptions.add(sub));
     }
     
@@ -122,7 +107,7 @@ class NodeManager {
   /**
    * Obtener suscripciones a service points para una ubicación
    */
-  async getServicePointSubscriptions(location) {
+  async getServicePointSubscriptions(location, includeChildren = false) {
     const subscriptions = new Set();
     
     // Service points directamente asociados a esta ubicación
@@ -134,6 +119,14 @@ class NodeManager {
       subscriptions.add(`spptze/messages/sp/${sp.id}`);
     });
     
+    // Si es necesario, obtener puntos de servicio relacionados con ubicaciones hijas
+    if (includeChildren) {
+      const descendants = await location.getDescendants();
+      for (const descendant of descendants) {
+        const descendantSPs = await descendant.getServicePoints({ where: { active: true }});
+        descendantSPs.forEach(sub => subscriptions.add(`spptze/messages/sp/${sp.id}`));
+      }
+    }
     return Array.from(subscriptions);
   }
 
