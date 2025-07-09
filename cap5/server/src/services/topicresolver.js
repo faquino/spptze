@@ -72,7 +72,7 @@ class TopicResolver {
    * @returns {Promise<Array>} Array de instancias DisplayNode
    */
   async getTargetNodes(message) {
-    let targetLocations = [];
+    const targetLocations = [];
     
     if (message.targetLocationId) {
       // Mensaje directo a ubicación
@@ -80,7 +80,7 @@ class TopicResolver {
       if (!location) {
         throw new Error(`Location ${message.targetLocationId} not found`);
       }
-      targetLocations = [location];
+      targetLocations.push(location);
     } else {
       // Mensaje a service point - obtener ubicaciones asociadas
       const servicePoint = await ServicePoint.findByPk(message.targetServicePointId, {
@@ -89,7 +89,7 @@ class TopicResolver {
       if (!servicePoint) {
         throw new Error(`ServicePoint ${message.targetServicePointId} not found`);
       }
-      targetLocations = servicePoint.Locations;
+      targetLocations.push(...servicePoint.Locations);
     }
     
     const targetNodesMap = new Map(); // nodeId -> node instance

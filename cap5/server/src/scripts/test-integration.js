@@ -110,8 +110,8 @@ async function testAPIIntegration() {
     // 3. Crear mensaje
     console.log('\n·Creando mensaje de prueba...');
     const newMessage = {
-      ticket: 'TST123',
-      content: 'Mensaje de prueba integración',
+      ticket: 'TST12',
+      content: 'C-27',
       target: 'CARDIO_MAÑANA_DRG',
       targetType: 'service_point',
       externalRef: 'INTEGRATION_TEST'
