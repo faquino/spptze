@@ -190,8 +190,9 @@ async function generateSequelizeDictionary() {
         if (fieldDef.unique) constraints.push('UNIQUE');
         
         const constraintsText = constraints.length > 0 ? constraints.join(', ') : '-';
-        
-        markdown += `| \`${fieldName}\` | ${type} | ${constraintsText} | ${defaultValue} | ${validations} |\n`;
+        let fldNameDisp = `\`${fieldName}\``;
+        if (fieldDef.comment) fldNameDisp += ` [ℹ️](## "${fieldDef.comment}")`;
+        markdown += `| ${fldNameDisp} | ${type} | ${constraintsText} | ${defaultValue} | ${validations} |\n`;
       });
       
       // Índices

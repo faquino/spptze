@@ -1,6 +1,6 @@
 # Diccionario de Datos - Base de Datos SPPTZE
 
-*Generado el 9/7/2025, 16:59:22 por generate-data-dict.js a partir del modelo Sequelize*
+*Generado el 9/7/2025, 19:04:44 por generate-data-dict.js a partir del modelo Sequelize*
 
 ## Índice de Tablas
 
@@ -35,12 +35,12 @@ Nodos de visualización inventariados en el sistema
 | `name` | VARCHAR(80) | - | - | NOT NULL |
 | `description` | TEXT | - | - | - |
 | `serialNumber` | VARCHAR(32) | - | - | - |
-| `macAddress` | VARCHAR(12) | - | - | isValidMAC (custom) |
+| `macAddress` [ℹ️](## "Seis bytes codificados en hexadecimal, sin separadores") | VARCHAR(12) | - | - | isValidMAC (custom) |
 | `hostname` | VARCHAR(255) | - | - | - |
 | `hardwareModel` | VARCHAR(32) | - | - | - |
 | `active` | BOOLEAN | - | true | - |
 | `lastSeen` | DATE | - | - | - |
-| `templateOverrideId` | VARCHAR(16) | FK → `display_templates.id` | - | - |
+| `templateOverrideId` [ℹ️](## "Permite anular la lógica de asignación de plantilla basada en la jerarquía de ubicaciones") | VARCHAR(16) | FK → `display_templates.id` | - | - |
 | `createdAt` | DATE | - | undefined | - |
 
 #### Índices
@@ -93,7 +93,7 @@ Sistemas externos que envían mensajes a través de la API
 | `name` | VARCHAR(80) | - | - | NOT NULL |
 | `description` | TEXT | - | - | - |
 | `apiKey` | VARCHAR(64) | - | - | - |
-| `allowedIPs` | JSONTYPE | - | - | isValidIPArray (custom) |
+| `allowedIPs` [ℹ️](## "Lista de IPs o rangos CIDR autorizados para el sistema") | JSONTYPE | - | - | isValidIPArray (custom) |
 | `defaultTargetType` | VARCHAR(1) | - | - | NOT NULL, Valores: [["S","L"]] |
 | `defaultChannel` | VARCHAR(16) | - | "calls" | Valores: [["calls","info","emergency","announcements"]] |
 | `messageFormat` | JSONTYPE | - | - | - |
@@ -140,7 +140,7 @@ Niveles definidos por cada jerarquía organizativa
 | `hierarchyId` | VARCHAR(16) | FK → `hierarchies.id` | - | NOT NULL |
 | `name` | VARCHAR(80) | - | - | NOT NULL |
 | `description` | TEXT | - | - | - |
-| `prevId` | VARCHAR(16) | FK → `hierarchy_levels.id` | - | - |
+| `prevId` [ℹ️](## "Referencia al nivel previo de la jerarquía") | VARCHAR(16) | FK → `hierarchy_levels.id` | - | - |
 
 #### Índices
 
@@ -175,9 +175,9 @@ Ubicaciones inventariadas en la jerarquía organizativa
 | `id` | VARCHAR(16) | PK | - | NOT NULL, PRIMARY KEY, isMQTTCompatible (custom) |
 | `name` | VARCHAR(80) | - | - | NOT NULL |
 | `description` | TEXT | - | - | - |
-| `hierarchyId` | VARCHAR(16) | FK → `hierarchies.id` | - | NOT NULL |
+| `hierarchyId` [ℹ️](## "(DN) Referencia a la jerarquía a la que pertenece la ubicación") | VARCHAR(16) | FK → `hierarchies.id` | - | NOT NULL |
 | `hierarchyLevelId` | VARCHAR(16) | FK → `hierarchy_levels.id` | - | NOT NULL |
-| `parentId` | VARCHAR(16) | FK → `locations.id` | - | - |
+| `parentId` [ℹ️](## "Referencia a la ubicación madre") | VARCHAR(16) | FK → `locations.id` | - | - |
 | `templateId` | VARCHAR(16) | FK → `display_templates.id` | - | - |
 
 #### Índices
@@ -223,8 +223,8 @@ Mensajes o llamadas de turno recibidos a través de la API
 | `targetLocationId` | VARCHAR(16) | FK → `locations.id` | - | - |
 | `targetServicePointId` | VARCHAR(16) | FK → `service_points.id` | - | - |
 | `sourceSystemId` | VARCHAR(16) | FK → `external_systems.id` | - | - |
-| `ogMessageId` | VARCHAR(16) | FK → `messages.id` | - | - |
-| `externalRef` | VARCHAR(36) | - | - | - |
+| `ogMessageId` [ℹ️](## "Referencia al mensaje original en caso de repetición") | VARCHAR(16) | FK → `messages.id` | - | - |
+| `externalRef` [ℹ️](## "Identificador del evento/petición/... del mensaje en el sistema externo") | VARCHAR(36) | - | - | - |
 | `createdAt` | DATE | - | undefined | - |
 | `expiresAt` | DATE | - | - | - |
 
@@ -260,11 +260,11 @@ Registros de entrega de mensajes a nodos de visualización
 |-------|------|---------------|---------|--------------|
 | `messageId` | VARCHAR(16) | PK, FK → `messages.id` | - | PRIMARY KEY |
 | `nodeId` | VARCHAR(16) | PK, FK → `display_nodes.id` | - | PRIMARY KEY |
-| `createdAt` | DATE | - | undefined | NOT NULL |
-| `deliveredAt` | DATE | - | - | - |
-| `displayedAt` | DATE | - | - | - |
-| `acknowledgedAt` | DATE | - | - | - |
-| `retractedAt` | DATE | - | - | - |
+| `createdAt` [ℹ️](## "Timestamp de creación de la tupla (RTC servidor central)") | DATE | - | undefined | NOT NULL |
+| `deliveredAt` [ℹ️](## "Timestamp de entrega del mensaje al nodo (RTC nodo de visualización)") | DATE | - | - | - |
+| `displayedAt` [ℹ️](## "Timestamp de visualización del mensaje en el nodo (RTC nodo de visualización)") | DATE | - | - | - |
+| `acknowledgedAt` [ℹ️](## "Timestamp de entrega del mensaje de ACK del nodo (RTC servidor central)") | DATE | - | - | - |
+| `retractedAt` [ℹ️](## "Timestamp del informe de retirada del mensaje por parte del nodo (RTC servidor central)") | DATE | - | - | - |
 | `acknowledged` | VIRTUAL | - | - | - |
 
 #### Índices
@@ -297,7 +297,7 @@ Tabla de relación M:N entre DisplayNode y Location
 |-------|------|---------------|---------|--------------|
 | `nodeId` | VARCHAR(16) | PK, FK → `display_nodes.id` | - | PRIMARY KEY |
 | `locationId` | VARCHAR(16) | PK, FK → `locations.id` | - | PRIMARY KEY |
-| `showChildren` | BOOLEAN | - | true | - |
+| `showChildren` [ℹ️](## "El nodo debe mostrar también los mensajes dirigidos a ubicaciones descendientes") | BOOLEAN | - | true | - |
 | `active` | BOOLEAN | - | true | NOT NULL |
 
 ---
@@ -318,7 +318,7 @@ Agrupaciones lógicas de ubicaciones referidas por algún sistema externo
 | `id` | VARCHAR(16) | PK | - | NOT NULL, PRIMARY KEY, isMQTTCompatible (custom) |
 | `name` | VARCHAR(80) | - | - | NOT NULL |
 | `sourceSystemId` | VARCHAR(16) | FK → `external_systems.id` | - | NOT NULL |
-| `externalId` | VARCHAR(36) | - | - | NOT NULL |
+| `externalId` [ℹ️](## "ID por el que el sistema externo conoce y se refiere al punto de servicio") | VARCHAR(36) | - | - | NOT NULL |
 | `active` | BOOLEAN | - | true | - |
 
 #### Índices
