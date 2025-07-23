@@ -34,7 +34,6 @@ class CECControlService {
 
     // Configuración
     this.commandDelay = 100; // ms entre comandos CEC
-    this.initTimeout = 10000; // timeout para inicialización
   }
 
   /**
@@ -42,10 +41,10 @@ class CECControlService {
    */
   async initialize() {
     if (this.initializing) {
-      console.log("(CEC) Already initializing ALWAYS call initialize() using 'await'");
+      console.log("CEC: Already initializing ALWAYS call initialize() using 'await'");
     }
     this.initializing = true;
-    console.log('(CEC) Discovering devices...');
+    console.log('CEC: Discovering devices...');
 
     try {
       // Verificar que cec-ctl está disponible
@@ -53,13 +52,13 @@ class CECControlService {
 
       // Obtener dispositivos CEC disponibles
       const devices = await this.discoverCecDevices();
-      if (devices.length === 0) throw new Error('(CEC) No devices found');
-      console.log('(CEC) Devices: ', JSON.stringify(devices));
+      if (devices.length === 0) throw new Error('CEC: No devices found');
+      console.log('CEC: Devices: ', JSON.stringify(devices));
 
       // Para cada dispositivo, verificar si hay TV conectado
       const tvDevice = await this.findTvDevice(devices);
 
-      if (!tvDevice) throw new Error('(CEC) No TV connected to any CEC device');
+      if (!tvDevice) throw new Error('CEC: No TV connected to any CEC device');
 
       // Establecer conexión playback con el TV
       await this.establishPlaybackConnection(tvDevice);
@@ -75,15 +74,14 @@ class CECControlService {
       this.initialized = true;
       this.lastError = null;
 
-      console.log(`(CEC) SUCESS: Device: ${this.devicePath}; Physical Address: ${this.physicalAddress}; TV Power Status: ${this.tvPowerStatus}`);
+      console.log(`CEC: SUCESS: Device: ${this.devicePath}; Physical Address: ${this.physicalAddress}; TV Power Status: ${this.tvPowerStatus}`);
 
     } catch (error) {
       this.available = false;
       this.initialized = false;
       this.lastError = error.message;
+      console.log('CEC: Feature unavailable; Error:', error.message);
 
-      console.error('(CEC) Setup error:', error.message);
-      console.log('(CEC) Feature unavailable');
     } finally {
       this.initializing = false;
     }
@@ -94,15 +92,15 @@ class CECControlService {
    */
   async checkCecCtlAvailable() {
     try {
-      const { stdout } = await execAsync('cec-ctl --version', { timeout: 5000 });
+      const { stdout } = await execAsync('cec-ctl --version', { timeout: 1000 });
 
       // Capturar la versión - típicamente algo así como "cec-ctl 1.22.1"
       const versionMatch = stdout.match(/cec-ctl.*?(\d+\.\d+\.\d+)/);
       this.cecCtlVersion = versionMatch ? versionMatch[1] : stdout.trim();
 
-      console.log('(CEC) cec-ctl available; version:', this.cecCtlVersion);
+      console.log('CEC: cec-ctl available; version:', this.cecCtlVersion);
     } catch (error) {
-      throw new Error(`(CEC) cec-ctl unavailable: ${error.message}`);
+      throw new Error(`CEC: cec-ctl unavailable: ${error.message}`);
     }
   }
 
@@ -111,17 +109,19 @@ class CECControlService {
    */
   async discoverCecDevices() {
     try {
-      const { stdout } = await execAsync('cec-ctl --list-devices', { timeout: this.initTimeout });
+      const { stdout } = await execAsync('cec-ctl --list-devices', { timeout: 3000 });
 
-      console.log('(CEC) cec-ctl output:');
-      if (process.env.CEC_DEBUG === 'TRUE') console.log(stdout);
+      if (process.env.CEC_DEBUG === 'true') {
+        console.log('CEC: cec-ctl output:');
+        console.log(stdout);
+      }
 
       // Parsear salida para extraer dispositivos (/dev/cecX)
       const deviceMatches = stdout.match(/\/dev\/cec\d+/g);
       return deviceMatches || [];
 
     } catch (error) {
-      console.error('(CEC) Device discovery error:', error.message);
+      console.error('CEC: Device discovery error:', error.message);
       return [];
     }
   }
@@ -131,28 +131,25 @@ class CECControlService {
    */
   async findTvDevice(devices) {
     for (const device of devices) {
-      console.log(`(CEC) Looking for connected TV at ${device}...`);
+      console.log(`CEC: Looking for connected TV at ${device}...`);
 
       try {
         // Obtener topología del bus CEC del dispositivo
-        const { stdout } = await execAsync(
-          `cec-ctl -d ${device} --show-topology`, 
-          { timeout: 5000 }
-        );
+        const { stdout } = await execAsync(`cec-ctl -d ${device} --show-topology`, { timeout: 10000 } );
 
-        if (process.env.CEC_DEBUG === 'TRUE') {
-          console.log(`(CEC) Topology for ${device}:`);
+        if (process.env.CEC_DEBUG === 'true') {
+          console.log(`CEC: Topology for ${device}:`);
           console.log(stdout);
         }
 
         // Buscar indicios de un TV conectado (logical address 0, device type TV)
         if (stdout.includes('TV') || stdout.includes('Logical address 0')) {
-          console.log(`(CEC) TV found at ${device}`);
+          console.log(`CEC: TV found at ${device}`);
           return device;
         }
 
       } catch (error) {
-        console.warn(`(CEC) Error looking for TV at ${device}:`, error.message);
+        console.warn(`CEC: Error looking for TV at ${device}:`, error.message);
         continue;
       }
     }
@@ -165,24 +162,21 @@ class CECControlService {
    */
   async establishPlaybackConnection(device) {
     try {
-      console.log(`(CEC) Configuring connection as playback device on ${device}...`);
+      console.log(`CEC: Configuring connection as playback device on ${device}...`);
 
-      const { stdout, stderr } = await execAsync(
-        `cec-ctl -d ${device} --playback`,
-        { timeout: 5000 }
-      );
+      const { stdout, stderr } = await execAsync(`cec-ctl -d ${device} --playback`, { timeout: 5000 });
 
       if (stderr && stderr.includes('error')) {
         throw new Error(`cec-ctl reported an error: ${stderr}`);
       }
 
-      console.log('(CEC) Connection successfully configured as playback device');
+      console.log('CEC: Connection successfully configured as playback device');
 
       // delay para que la configuración 'asiente'
       await this.sleep(500);
 
     } catch (error) {
-      throw new Error(`(CEC) Error configuring connection as playback device: ${error.message}`);
+      throw new Error(`CEC: Error configuring connection as playback device: ${error.message}`);
     }
   }
 
@@ -200,14 +194,14 @@ class CECControlService {
       const match = stdout.match(/Physical Address\s*:\s*(\d+\.\d+\.\d+\.\d+)/);
 
       if (match) {
-        console.log(`(CEC) Physical Address detectada: ${match[1]}`);
+        console.log(`CEC: Physical Address detectada: ${match[1]}`);
         return match[1];
       }
 
       // Fallback por defecto 1.0.0.0
       throw new Error('No Physical Address found in cec-ctl output');
     } catch (error) {
-      console.warn('(CEC) Error getting Physical Address:', error.message);
+      console.warn('CEC: Error getting Physical Address:', error.message);
       return '1.0.0.0';
     }
   }
@@ -237,11 +231,11 @@ class CECControlService {
         } else {
           this.tvPowerStatus = 'unknown';
         }
-        console.log(`(CEC) TV Power Status: ${this.tvPowerStatus}`);
+        console.log(`CEC: TV Power Status: ${this.tvPowerStatus}`);
       }
 
     } catch (error) {
-      console.warn('(CEC) Error getting TV power status:', error.message);
+      console.warn('CEC: Error getting TV power status:', error.message);
       this.tvPowerStatus = 'unknown';
     }
   }
@@ -282,11 +276,11 @@ class CECControlService {
    */
   async processControlCommand(command) {
     if (!this.available) {
-      console.warn('(CEC) Control unavailable, command ignored:', command);
+      console.warn('CEC: Control unavailable, command ignored:', command);
       return false;
     }
 
-    console.log('(CEC) Command received:', JSON.stringify(command));
+    console.log('CEC: Command received:', JSON.stringify(command));
 
     // Añadir comando a la cola
     this.commandQueue.push({
@@ -295,7 +289,7 @@ class CECControlService {
       id: Math.random().toString(36).slice(2, 11)
     });
 
-    console.log(`(CEC) Command queued (${this.commandQueue.length} pending)`);
+    console.log(`CEC: Command queued (${this.commandQueue.length} pending)`);
 
     // Si no hay procesamiento activo, iniciarlo
     if (!this.processing) {
@@ -312,13 +306,13 @@ class CECControlService {
     if (this.processing || this.commandQueue.length === 0) return;
 
     this.processing = true;
-    console.log('(CEC) Starting queue processing...');
+    console.log('CEC: Starting queue processing...');
 
     while (this.commandQueue.length > 0) {
       const command = this.commandQueue.shift();
 
       try {
-        console.log(`(CEC) Processing command ${command.id}:`, JSON.stringify(command));
+        console.log(`CEC: Processing command ${command.id}:`, JSON.stringify(command));
         this.lastCommand = `${Object.keys(command).filter(k => k !== 'timestamp' && k !== 'id').join(',')}`;
         this.commandCount++;
         this.lastCommandTime = new Date().toISOString();
@@ -349,10 +343,10 @@ class CECControlService {
           }
         }
 
-        console.log(`(CEC) Command ${command.id} processed succesfully`);
+        console.log(`CEC: Command ${command.id} processed succesfully`);
 
       } catch (error) {
-        console.error(`(CEC) Error processing command ${command.id}:`, error.message);
+        console.error(`CEC: Error processing command ${command.id}:`, error.message);
         this.lastError = `Command ${command.id}: ${error.message}`;
         this.errorCount++;
       }
@@ -364,7 +358,7 @@ class CECControlService {
     }
 
     this.processing = false;
-    console.log('(CEC) Queue processing completed');
+    console.log('CEC: Queue processing completed');
   }
 
   /**
@@ -379,15 +373,15 @@ class CECControlService {
     //comandos de control de volumen, a pesar de ignorarlos cuando están encendidos
     await this.updateTvPowerStatus();
     if (this.tvPowerStatus !== 'on') {
-      console.log(`(CEC) Ignoring volume command - TV is not on (power status: '${this.tvPowerStatus}')`);
+      console.log(`CEC: Ignoring volume command - TV is not on (power status: '${this.tvPowerStatus}')`);
       return;
     }
 
-    console.log(`(CEC) Ajusting volume at ${volumeLevel}`);
+    console.log(`CEC: Ajusting volume at ${volumeLevel}`);
 
     // La estrategia es bajar volumen 100 veces, luego subir hasta el nivel deseado
     // Bajar volumen a 0
-    console.log('(CEC) Setting volume to 0...');
+    console.log('CEC: Setting volume to 0...');
     for (let i = 0; i < 100; i++) {
       await this.execCecCommand('--user-control-pressed ui-cmd=volume-down');
       await this.sleep(this.commandDelay);
@@ -395,14 +389,14 @@ class CECControlService {
 
     // Paso 2: Subir hasta el nivel deseado
     if (volumeLevel > 0) {
-      console.log(`(CEC) Rising volume to ${volumeLevel}...`);
+      console.log(`CEC: Rising volume to ${volumeLevel}...`);
       for (let i = 0; i < volumeLevel; i++) {
         await this.execCecCommand('--user-control-pressed ui-cmd=volume-up');
         await this.sleep(this.commandDelay);
       }
     }
 
-    console.log(`(CEC) Volume set to ${volumeLevel}`);
+    console.log(`CEC: Volume set to ${volumeLevel}`);
   }
 
   /**
@@ -413,7 +407,7 @@ class CECControlService {
       throw new Error(`Invalid power status: ${powerStatus} (must be 'on' or 'standby')`);
     }
 
-    console.log(`(CEC) Applying power status: ${powerStatus}`);
+    console.log(`CEC: Applying power status: ${powerStatus}`);
 
     if (powerStatus === 'on') {
       // Encender TV
@@ -427,12 +421,12 @@ class CECControlService {
         await this.execCecCommand(`--active-source phys-addr=${this.physicalAddress}`);
       }
 
-      console.log('(CEC) TV on and this host selected as active source');
+      console.log('CEC: TV on and this host selected as active source');
 
     } else if (powerStatus === 'standby') {
       // Poner en standby
       await this.execCecCommand('--standby');
-      console.log('(CEC) TV set to standby');
+      console.log('CEC: TV set to standby');
     }
 
     // Actualizar estado después del cambio
@@ -449,21 +443,21 @@ class CECControlService {
 
     const fullCommand = `cec-ctl -s -d ${this.devicePath} -t0 ${cecArgs}`;
     try {
-      if (process.env.CEC_DEBUG === 'TRUE')
-        console.log(`(CEC) Executing: ${fullCommand}`);
+      if (process.env.CEC_DEBUG === 'true')
+        console.log(`CEC: Executing: ${fullCommand}`);
 
       const { stdout, stderr } = await execAsync(fullCommand, { timeout: 5000 });
 
       if (stderr && stderr.includes('error'))
         throw new Error(`Error in CEC command: ${stderr}`);
 
-      if (process.env.CEC_DEBUG === 'TRUE' && stdout.trim())
-        console.log(`(CEC) cec-ctl output: ${stdout.trim()}`);
+      if (process.env.CEC_DEBUG === 'true' && stdout.trim())
+        console.log(`CEC: cec-ctl output: ${stdout.trim()}`);
 
       return stdout;
 
     } catch (error) {
-      console.error(`(CEC) Error executing comand: ${fullCommand}`);
+      console.error(`CEC: Error executing comand: ${fullCommand}`);
       throw new Error(`CEC command failed: ${error.message}`);
     }
   }
