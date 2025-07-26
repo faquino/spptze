@@ -16,7 +16,7 @@ class TopicResolver {
 
   constructor(prefix = 'spptze') {
     this.#prefix = prefix;
-    console.log('(init) TopicrResolver; prefix:', this.#prefix);
+    console.log('(init) TopicResolver; prefix:', this.#prefix);
   }
 
   /**
