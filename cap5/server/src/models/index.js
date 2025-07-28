@@ -6,7 +6,7 @@
  */
 
 // =============================================================
-// SPPTZE - INICIALIZACIÓN DE MODELOS
+// SPPTZE - INICIALIZACIÓN DE MODELOS; FUNCIONES DE UTILIDAD
 // cap5/server/src/models/index.js
 // =============================================================
 const { sequelize } = require('../config/database');
@@ -38,25 +38,6 @@ const resolverUtils = {
     });
     
     return servicePoint ? servicePoint.Locations : [];
-  },
-
-  /**
-   * Resuelve una ubicación a todos los nodos que la muestran
-   */
-  async resolveLocationToNodes_alt(locationId, includeChildren = true) {
-    const whereClause = includeChildren 
-      ? { locationId: { [sequelize.Sequelize.Op.like]: `${locationId}%` } }
-      : { locationId };
-    
-    const mappings = await models.NodeLocationMapping.findAll({
-      where: { ...whereClause, active: true },
-      include: [{
-        model: models.DisplayNode,
-        where: { status: 'active' }
-      }]
-    });
-    
-    return mappings.map(mapping => mapping.DisplayNode);
   },
 
   async resolveLocationToNodes(locationId, includeChildren = true) {
@@ -114,7 +95,6 @@ const resolverUtils = {
 
 // Exportar modelos y utilidades
 module.exports = {
-  sequelize,
   ...models,
   resolverUtils
 };
