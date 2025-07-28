@@ -62,6 +62,7 @@ class MQTTService extends EventEmitter {
       });
 
       this.client.on('message', (topic, message) => {
+        console.log('MQTT: DELIVER', topic);
         this.handleMessage(topic, message);
       });
     });
@@ -101,6 +102,7 @@ class MQTTService extends EventEmitter {
         if (error) {
           reject(error);
         } else {
+          console.log('MQTT: PUBLISH', topic);
           resolve();
         }
       });
@@ -127,7 +129,7 @@ class MQTTService extends EventEmitter {
       // Emitir evento para otros componentes
       this.emit('message', { topic, payload });
     } catch (error) {
-      console.error('MQTT: Error handling message:', error);
+      console.error('MQTT: Error handling message:', error.message);
     }
   }
 
@@ -147,7 +149,7 @@ class MQTTService extends EventEmitter {
       // Enviar configuración de suscripciones al nodo
       const response = {
         nodeId: node.id,
-        heartbeatInterval: process.env.HEARTBEAT_INTERVAL || 30,
+        heartbeatInterval: process.env.HEARTBEAT_INTERVAL || 60,
         subs: subscriptions
       };
       
@@ -168,8 +170,13 @@ class MQTTService extends EventEmitter {
    * @param {object} payload 
    */
   async handleNodeHeartbeat(topic, payload) {
-    await nodeManager.getNodeBySN(payload.serialNumber);
+    console.log('Hearteat payload: ', JSON.stringify(payload));
+    if (payload?.serialNumber)
+      await nodeManager.getNodeBySN(payload.serialNumber);
+    else
+      throw new Error('No valid serial in heartbeat message');
     //TODO: Simplemente se refresca lastSeen del nodo en cuestión, pero el heartbeat podría proporcionar más info
+    //      sobre el nodo
   }
 
   /**
