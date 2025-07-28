@@ -12,10 +12,12 @@
 const mqtt = require('mqtt');
 const EventEmitter = require('events');
 
-
+function isFun(value) {
+  return (typeof value === 'function');
+}
 
 class MQTTService extends EventEmitter {
-  constructor(serialNo) {
+  constructor(serialNo, heartbeatInfoFun) {
     super();
     this.serialNumber = serialNo;
     this.nodeId = null;
@@ -23,15 +25,20 @@ class MQTTService extends EventEmitter {
     this.isConnected = false;
     this.nodeSubscriptions = []; // nodeId -> [topics]
     this.heartbeatInterval = null;
+    this.heartbeatInfoFun = heartbeatInfoFun;
   }
-  
-  setupHeartbeat(intervalSecs) {
+
+  // El heartbeat se inicia cuando se recibe el mensaje con las suscripciones
+  setupHeartbeat(intervalSecs = 60) {
+    console.log(`MQTT: Configuring heartbeat every ${intervalSecs} secs`);
     if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
     this.heartbeatInterval = setInterval(() => {
-      this.publishHeartbeat();
+      const payload = isFun(this.heartbeatInfoFun) ? this.heartbeatInfoFun() : { serialNumber: this.serialNumber };
+      this.publishHeartbeat(payload);
     }, intervalSecs * 1000);
   }
-  
+
+
   /**
    * Conectar al bróker MQTT
    */
@@ -75,9 +82,9 @@ class MQTTService extends EventEmitter {
   }
 
 
-  async publishHeartbeat() {
+  async publishHeartbeat(payload) {
     if (!this.isConnected) throw new Error('MQTT client not connected');
-    this.publish('spptze/system/heartbeat', { serialNumber: this.serialNumber });
+    this.publish('spptze/system/heartbeat', { nodeId: this.nodeId, ...payload });
   }
 
   /**
@@ -96,6 +103,7 @@ class MQTTService extends EventEmitter {
         if (error) {
           reject(error);
         } else {
+          console.log('MQTT: PUBLISH', topic);
           resolve();
         }
       });
@@ -107,6 +115,7 @@ class MQTTService extends EventEmitter {
    */
   async handleMessage(topic, message) {
     const ahora = Date.now();
+    console.log('MQTT: DELIVER', topic);
     try {
       const payload = JSON.parse(message.toString());
       
@@ -116,7 +125,9 @@ class MQTTService extends EventEmitter {
       } else if (topic.startsWith('spptze/messages/')) {
         // Mensaje de llamada de turno
         payload.deliveredAt = ahora;
-        this.emit('spptze:player:mqtt:message', topic, payload);  // a manejar en player.js
+        this.emit('spptze:player:mqtt:message', topic, payload); // a manejar en player.js
+      } else if (topic.startsWith('spptze/control/')) {
+        this.emit('spptze:player:mqtt:control', topic, payload); // a manejar en player.js
       } else {
         throw new Error(`No handler for topic '${topic}'`);
       }
@@ -129,7 +140,7 @@ class MQTTService extends EventEmitter {
   async handleMessageSubs(payload) {
     console.log(`MQTT: Received subscriptions for ${this.serialNumber} (${payload.subs.length} topics)`);
     if (payload.nodeId) this.nodeId = payload.nodeId;
-    if (payload.heartbeatInterval) this.setupHeartbeat(payload.heartbeatInterval);
+    this.setupHeartbeat(payload.heartbeatInterval);
     // Limpiar suscripciones previas
     while (this.nodeSubscriptions.length > 0) {
       const sub = this.nodeSubscriptions.pop();
