@@ -10,7 +10,8 @@
 // cap5/server/src/middleware/index.js
 // =============================================================
 const { authenticateAPI } = require('./apiAuth');
+const { validateIPAccess } = require('./validateIP');
 const { assignReqUID } = require('./assignReqUID');
 const { rateLimiter } = require('./rateLimiter');
 
-module.exports = { authenticateAPI, assignReqUID, rateLimiter };
+module.exports = { authenticateAPI, validateIPAccess, assignReqUID, rateLimiter };

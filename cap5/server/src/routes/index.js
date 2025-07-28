@@ -13,7 +13,7 @@ const express = require('express');
 const router = express.Router();
 
 // Importar middleware
-const { authenticateAPI, assignReqUID, rateLimiter} = require('../middleware');
+const { authenticateAPI, validateIPAccess, assignReqUID, rateLimiter} = require('../middleware');
 
 // Sub-routers 'temáticos'
 const messageRoutes = require('./messages.js');
@@ -30,9 +30,9 @@ router.get('/', (req, res) => {
   });
 });
 
-// Aplicar middleware a las
-router.use('/messages', authenticateAPI, assignReqUID, rateLimiter, messageRoutes);
-router.use('/nodes', authenticateAPI, assignReqUID, rateLimiter, nodeRoutes);
-router.use('/status', authenticateAPI, assignReqUID, rateLimiter, statusRoutes);
+// Aplicar middleware a las rutas de la API
+router.use('/messages', authenticateAPI, validateIPAccess, assignReqUID, rateLimiter, messageRoutes);
+router.use('/nodes', authenticateAPI, validateIPAccess, assignReqUID, rateLimiter, nodeRoutes);
+router.use('/status', authenticateAPI, validateIPAccess, assignReqUID, rateLimiter, statusRoutes);
 
 module.exports = router;
