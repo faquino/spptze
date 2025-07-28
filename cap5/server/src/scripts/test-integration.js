@@ -15,6 +15,9 @@ const { ExternalSystem, ServicePoint, Message, resolverUtils } = require('../mod
 const API_BASE = 'http://localhost:3000/api/v1';
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function makeRequest(method, endpoint, data = null, apiKey = null) {
   const options = {
@@ -132,10 +135,11 @@ async function testAPIIntegration() {
     console.log('Mensaje persistido en BD');
     
     // 5. Consultar mensaje via API
+    await sleep(500);
     console.log('\n·Consultando mensaje via API...');
-    const getResponse = await makeRequest('GET', `/messages/${createResponse.data.id}`, null, apiKey);
+    const getResponse = await makeRequest('GET', `/messages/${createResponse.data.id}?details=true`, null, apiKey);
     if (!getResponse.ok) throw new Error('Error consultando mensaje');
-    console.log(`Mensaje consultado: ${getResponse.data.content}`);
+    console.log(`Mensaje consultado: ${JSON.stringify(getResponse.data)}`);
     
     // 6. Consultar nodos
     console.log('\n·Consultando estado de nodos...');
