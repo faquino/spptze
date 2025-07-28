@@ -167,7 +167,7 @@ class MessageController {
     
     const repeated = {
       ...original,
-      id: req.requestId(),
+      id: req.requestId,
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15 min
       status: 'repeated',
