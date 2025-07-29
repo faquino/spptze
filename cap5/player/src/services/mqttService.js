@@ -16,6 +16,7 @@ function isFun(value) {
   return (typeof value === 'function');
 }
 
+
 class MQTTService extends EventEmitter {
   constructor(serialNo, heartbeatInfoFun) {
     super();
@@ -23,24 +24,20 @@ class MQTTService extends EventEmitter {
     this.nodeId = null;
     this.client = null;
     this.isConnected = false;
-    this.nodeSubscriptions = []; // nodeId -> [topics]
+    this.nodeSubscriptions = []; // Lista de topics de suscripción
     this.heartbeatInterval = null;
     this.heartbeatInfoFun = heartbeatInfoFun;
-  }
-
-  // El heartbeat se inicia cuando se recibe el mensaje con las suscripciones
-  setupHeartbeat(intervalSecs = 60) {
-    console.log(`MQTT: Configuring heartbeat every ${intervalSecs} secs`);
-    if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
-    this.heartbeatInterval = setInterval(() => {
-      const payload = isFun(this.heartbeatInfoFun) ? this.heartbeatInfoFun() : { serialNumber: this.serialNumber };
-      this.publishHeartbeat(payload);
-    }, intervalSecs * 1000);
+    this.publishCount = 0; // Cuenta de mensajes publicados
+    this.publishErrs = 0;  // Cuenta de errores al publicar
+    this.deliverCount = 0  // Cuenta de mensajes recibidos
+    this.deliverErrs = 0;  // Cuenta de errores al recibir
   }
 
 
   /**
-   * Conectar al bróker MQTT
+   * Conectarse al bróker MQTT
+   * @param {string} brokerUrl - Cadena con la URL de la forma mqtt://<mqtt_broker_host>
+   * @param {Object} options - Opciones de conexión (QoS, LWT etc.)
    */
   async connect(brokerUrl, options = {}) {
     const defaultOptions = {
@@ -52,15 +49,14 @@ class MQTTService extends EventEmitter {
 
     return new Promise((resolve, reject) => {
       this.client = mqtt.connect(brokerUrl, defaultOptions);
-      
+
       this.client.on('connect', () => {
         console.log('MQTT: Connected to broker');
         this.isConnected = true;
-        
-        // Suscribirse a topics del sistema
-        this.client.subscribe(`spptze/system/nodes/${this.serialNumber}`, (err) => {
-          if (err) console.error('MQTT: Error subscribing to nodeup:', err);
-        });
+
+        // Suscribirse a topic específico del nodo en el sistema, donde se recibirán mensajes
+        //de configuración (suscripciones) y también de control de pantalla
+        this.subscribe(`spptze/system/nodes/${this.serialNumber}`, true);
 
         this.publish('spptze/system/nodeup', { serialNumber: this.serialNumber });
         resolve();
@@ -77,14 +73,61 @@ class MQTTService extends EventEmitter {
     });
   }
 
+  /**
+   * Desconectarse del bróker MQTT
+   */
+  async disconnect() {
+    if (this.client) {
+      await new Promise((resolve) => {
+        this.client.end(false, resolve);
+      });
+      this.isConnected = false;
+      console.log('MQTT: Disconnected from broker');
+    }
+  }
+
+
+  /**
+   * Suscribirse al topic indicado
+   * @param {string} topic - Topic al que suscribirse
+   */
+  unsubscribe(topic) {
+    this.client.unsubscribe(topic);
+    console.log(`MQTT: Unsubscribed from ${topic}`);
+  }
+
+  subscribe(topic, persistent = false) {
+    this.client.subscribe(topic, (err) => {
+      if (err)
+        console.error(`MQTT: Error subscribing to ${topic}: ${err}`);
+      else {
+        console.log(`MQTT: Subscribed to ${topic}`);
+        // Evitar que la suscripción se elimine después en handleMessageSubs()
+        if (!persistent)
+          this.nodeSubscriptions.push(topic);
+      }
+    });
+  }
+
+  // El heartbeat se inicia cuando se recibe el mensaje con las suscripciones
+  setupHeartbeat(intervalSecs = 60) {
+    console.log(`MQTT: Configuring heartbeat every ${intervalSecs} secs`);
+    if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+    this.heartbeatInterval = setInterval(() => {
+      const payload = isFun(this.heartbeatInfoFun) ? this.heartbeatInfoFun() : { serialNumber: this.serialNumber };
+      this.publishHeartbeat(payload);
+    }, intervalSecs * 1000);
+  }
+
+
+
   async publishAck(message) {
     this.publish('spptze/messages/ack', { nodeId: this.nodeId, nodeSerial: this.serialNumber, ...message });
   }
 
-
   async publishHeartbeat(payload) {
     if (!this.isConnected) throw new Error('MQTT client not connected');
-    this.publish('spptze/system/heartbeat', { nodeId: this.nodeId, ...payload });
+    this.publish('spptze/system/heartbeat', { nodeId: this.nodeId, mqttStatus: this.getStats(), ...payload });
   }
 
   /**
@@ -99,8 +142,10 @@ class MQTTService extends EventEmitter {
     const payload = typeof data === 'string' ? data : JSON.stringify(data);
 
     return new Promise((resolve, reject) => {
+      this.publishCount++;
       this.client.publish(topic, payload, options, (error) => {
         if (error) {
+          this.publishErrs++;
           reject(error);
         } else {
           console.log('MQTT: PUBLISH', topic);
@@ -110,32 +155,36 @@ class MQTTService extends EventEmitter {
     });
   }
 
+
   /**
    * Manejar mensajes MQTT recibidos
    */
   async handleMessage(topic, message) {
     const ahora = Date.now();
     console.log('MQTT: DELIVER', topic);
+    this.deliverCount++;
     try {
       const payload = JSON.parse(message.toString());
       
-      if (topic === `spptze/system/nodes/${this.serialNumber}`) {
+      if (topic.startsWith(`spptze/system/nodes/${this.serialNumber}`)) {
         // Mensaje del servidor informando de las suscripciones necesarias 
-        if (payload.subs) await this.handleMessageSubs(payload);
+        if (payload.subs) {
+          await this.handleMessageSubs(payload);
+        } else if (payload.volumeLevel !== undefined || payload.powerStatus) {
+          this.emit('spptze:player:mqtt:control', topic, payload); // a manejar en player.js
+        }
       } else if (topic.startsWith('spptze/messages/')) {
         // Mensaje de llamada de turno
         payload.deliveredAt = ahora;
         this.emit('spptze:player:mqtt:message', topic, payload); // a manejar en player.js
-      } else if (topic.startsWith('spptze/control/')) {
-        this.emit('spptze:player:mqtt:control', topic, payload); // a manejar en player.js
       } else {
         throw new Error(`No handler for topic '${topic}'`);
       }
     } catch (error) {
+      this.deliverErrs++;
       console.error('MQTT: Error handling message:', error);
     }
   }
-
 
   async handleMessageSubs(payload) {
     console.log(`MQTT: Received subscriptions for ${this.serialNumber} (${payload.subs.length} topics)`);
@@ -143,20 +192,11 @@ class MQTTService extends EventEmitter {
     this.setupHeartbeat(payload.heartbeatInterval);
     // Limpiar suscripciones previas
     while (this.nodeSubscriptions.length > 0) {
-      const sub = this.nodeSubscriptions.pop();
-      this.client.unsubscribe(sub);
-      console.log(`MQTT: Unsubscribed from ${sub}`);
+      this.unsubscribe(this.nodeSubscriptions.pop());
     }
-    for (const sub of payload.subs) {
-      // Suscribirse a topics del sistema
-      this.client.subscribe(sub, (err) => {
-        if (err)
-          console.error(`MQTT: Error subscribing to ${sub}: ${err}`);
-        else {
-          console.log(`MQTT: Subscribed to ${sub}`);
-          this.nodeSubscriptions.push(sub);
-        }
-      });
+    for (const topic of payload.subs) {
+      // Suscribirse a topics indicados desde el servidor central
+      this.subscribe(topic);
     }
   }
 
@@ -165,24 +205,15 @@ class MQTTService extends EventEmitter {
    */
   getStats() {
     return {
-      connected: this.isConnected,
-      activeNodeSubscriptions: this.nodeSubscriptions.length,
-      clientId: this.client?.options?.clientId
+      nodeSubs: this.nodeSubscriptions.length,
+      clientId: this.client?.options?.clientId,
+      pubCount: this.publishCount,
+      pubErrs: this.publishErrs,
+      rcvCount: this.deliverCount,
+      rcvErrs: this.deliverErrs
     };
   }
 
-  /**
-   * Desconectar del bróker
-   */
-  async disconnect() {
-    if (this.client) {
-      await new Promise((resolve) => {
-        this.client.end(false, resolve);
-      });
-      this.isConnected = false;
-      console.log('MQTT: Disconnected from broker');
-    }
-  }
 }
 
 module.exports = MQTTService;
