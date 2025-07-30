@@ -300,7 +300,7 @@ class CECControlService {
   }
 
   /**
-   * Procesa la cola de comandos de forma secuencial
+   * Procesa la cola de comandos
    */
   async processCommandQueue() {
     if (this.processing || this.commandQueue.length === 0) return;
@@ -363,6 +363,7 @@ class CECControlService {
 
   /**
    * Ejecuta control de volumen del TV
+   * @param {!number} volumeLevel - El nivel de volumen (0..100) objetivo
    */
   async executeVolumeControl(volumeLevel) {
     if (volumeLevel < 0 || volumeLevel > 100) {
@@ -401,10 +402,11 @@ class CECControlService {
 
   /**
    * Ejecuta control del estado de energía del TV
+   * @param {string} powerStatus - Estado de energía ('on|standby') objetivo
    */
   async executePowerControl(powerStatus) {
     if (!['on', 'standby'].includes(powerStatus)) {
-      throw new Error(`Invalid power status: ${powerStatus} (must be 'on' or 'standby')`);
+      throw new Error(`Invalid power status: ${powerStatus}. Must be 'on' or 'standby'`);
     }
 
     console.log(`CEC: Applying power status: ${powerStatus}`);
@@ -412,11 +414,10 @@ class CECControlService {
     if (powerStatus === 'on') {
       // Encender TV
       await this.execCecCommand('--image-view-on');
-
-      // Pequeño delay para que procese el comando
+      // Pequeño delay para que se procese el comando en el TV
       await this.sleep(500);
 
-      // Establecer como fuente activa
+      // Establecer nodo como fuente activa en el TV
       if (this.physicalAddress) {
         await this.execCecCommand(`--active-source phys-addr=${this.physicalAddress}`);
       }
@@ -424,13 +425,13 @@ class CECControlService {
       console.log('CEC: TV on and this host selected as active source');
 
     } else if (powerStatus === 'standby') {
-      // Poner en standby
+      // Poner TV en standby
       await this.execCecCommand('--standby');
       console.log('CEC: TV set to standby');
     }
 
-    // Actualizar estado después del cambio
-    await this.sleep(1000);
+    // Actualizar información de estado tras el cambio
+    await this.sleep(500);
     await this.updateTvPowerStatus();
   }
 
