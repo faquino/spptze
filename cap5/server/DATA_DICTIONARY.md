@@ -1,6 +1,6 @@
 # Diccionario de Datos - Base de Datos SPPTZE
 
-*Generado el 9/7/2025, 19:04:44 por generate-data-dict.js a partir del modelo Sequelize*
+*Generado el 30/7/2025, 18:02:45 por generate-data-dict.js a partir del modelo Sequelize*
 
 ## Índice de Tablas
 
@@ -226,6 +226,7 @@ Mensajes o llamadas de turno recibidos a través de la API
 | `ogMessageId` [ℹ️](## "Referencia al mensaje original en caso de repetición") | VARCHAR(16) | FK → `messages.id` | - | - |
 | `externalRef` [ℹ️](## "Identificador del evento/petición/... del mensaje en el sistema externo") | VARCHAR(36) | - | - | - |
 | `createdAt` | DATE | - | undefined | - |
+| `retractedAt` | DATE | - | - | - |
 | `expiresAt` | DATE | - | - | - |
 
 #### Índices
@@ -235,9 +236,10 @@ Mensajes o llamadas de turno recibidos a través de la API
 - **Índice 3:** source_system_id
 - **Índice 4:** og_message_id
 - **Índice 5:** created_at
-- **Índice 6:** expires_at
-- **Índice 7:** channel
-- **Índice 8:** priority
+- **Índice 6:** retracted_at
+- **Índice 7:** expires_at
+- **Índice 8:** channel
+- **Índice 9:** priority
 
 #### Validaciones de Modelo
 

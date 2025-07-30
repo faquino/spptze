@@ -549,6 +549,7 @@ const Message = (sequelize) => {
       comment: 'Identificador del evento/petición/... del mensaje en el sistema externo'
      },
     createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, field: 'created_at' },
+    retractedAt: { type: DataTypes.DATE, allowNull: true, field: 'retracted_at' },
     expiresAt: { type: DataTypes.DATE, allowNull: true, field: 'expires_at' }
   }, {
     tableName: 'messages',
@@ -560,6 +561,7 @@ const Message = (sequelize) => {
       { fields: ['source_system_id'] },
       { fields: ['og_message_id'] },
       { fields: ['created_at'] },
+      { fields: ['retracted_at'] },
       { fields: ['expires_at'] },
       { fields: ['channel'] },
       { fields: ['priority'] }
