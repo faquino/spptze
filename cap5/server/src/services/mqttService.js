@@ -68,22 +68,6 @@ class MQTTService extends EventEmitter {
     });
   }
 
-  /**
-   * 
-   * @param {string} topic 
-   * @param {*} message 
-   */
-  async publishMessage(topic, message) {
-    const data = {
-//      id: message.id,
-      content: message.content
-    };
-    if (message.ticket) data.ticket = message.ticket;
-    if (message.priority) data.priority = message.priority;
-    if (message.channel) data.channel = message.channel;
-    if (message.externalRef) data.externalRef = message.externalRef;
-    return this.publish(topic, data);
-  }
 
   /**
    * Publicar mensaje (data) en un topic
@@ -194,6 +178,8 @@ class MQTTService extends EventEmitter {
 
   /**
    * Publicar mensaje de llamada de turno
+   * @param {string} topic 
+   * @param {Object} message 
    */
   async publishMessage(topic, message) {
     const messageData = {
@@ -207,6 +193,14 @@ class MQTTService extends EventEmitter {
 
     await this.publish(topic, messageData, { qos: 1 });
     console.log(`MQTT: Published message ${message.id} to ${topic}`);
+  }
+
+  /**
+   * Publicar retirade de mensaje
+   * @param {string} id - Identificador del mensaje a retirar
+   */
+  async publishMessageRetract(id) {
+    await this.publish('spptze/messages/retract', { id: id });
   }
 
   /**
