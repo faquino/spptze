@@ -17,7 +17,7 @@ const statusController = require('../controllers/statusController');
 
 /**
  * @swagger
- * /:
+ * /status:
  *   get:
  *     summary: Estado general del sistema
  *     description: Obtiene métricas generales y estado de salud del sistema SPPTZE

@@ -17,7 +17,7 @@ const messageController = require('../controllers/messageController');
 
 /**
  * @swagger
- * /:
+ * /messages:
  *   post:
  *     summary: Enviar nueva llamada de turno
  *     description: |
@@ -79,7 +79,7 @@ router.post('/', messageController.createMessage);
 
 /**
  * @swagger
- * /{id}:
+ * /messages/{id}:
  *   get:
  *     summary: Consultar estado de mensaje específico
  *     description: |
@@ -174,14 +174,14 @@ router.get('/:id', messageController.getMessageStatus);
 
 /**
  * @swagger
- * /{id}/retire:
+ * /messages/{id}/retract:
  *   patch:
  *     summary: Retirar mensaje específico
  *     description: |
  *       Marca un mensaje como retirado y lo elimina de todas las pantallas de visualización.
- *       Útil cuando se confirma la presencia en el punto de servicio de la persona a atender,
- *       se da por finalizada la atención o es necesario cambiar el punto de atención tras
- *       haberla llamado, p.ej.
+ *       Útil p.ej. cuando se quiere eliminar el mensade de las pantallas al confirmarse la
+ *       presencia de la persona a atender en el punto de servicio, o al darse por finalizada 
+ *       la atención.
  *     tags:
  *       - Mensajes
  *     security:
@@ -193,25 +193,6 @@ router.get('/:id', messageController.getMessageStatus);
  *         description: Identificador único del mensaje a retirar
  *         schema:
  *           type: string
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               reason:
- *                 type: string
- *                 description: Motivo de la retirada (opcional, para auditoría)
- *                 example: "Paciente confirmó presencia"
- *           examples:
- *             confirmacion:
- *               summary: Confirmación de presencia
- *               value:
- *                 reason: "Paciente confirmó presencia en recepción"
- *             cancelacion:
- *               summary: Cancelación de cita
- *               value:
- *                 reason: "Cita cancelada por el paciente"
  *     responses:
  *       200:
  *         description: Mensaje retirado exitosamente
@@ -219,6 +200,12 @@ router.get('/:id', messageController.getMessageStatus);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/MessageResponse'
+ *       400:
+ *         description: Mensaje ya retirado anteriormente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       404:
  *         description: Mensaje no encontrado
  *         content:
@@ -226,17 +213,17 @@ router.get('/:id', messageController.getMessageStatus);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.patch('/:id/retire', messageController.retireMessage);
+router.patch('/:id/retract', messageController.retractMessage);
 
 
 /**
  * @swagger
- * /{id}/repeat:
+ * /messages/{id}/repeat:
  *   patch:
  *     summary: Repetir llamada existente
  *     description: |
- *       Crea una repetición de un mensaje existente, útil cuando un paciente no responde 
- *       a la primera llamada. El mensaje original se marca como repetido y se crea una nueva instancia.
+ *       Crea una repetición de un mensaje existente, útil p.ej. cuando la persona a atender no acude
+ *       al punto de servicio, o si es necesario cambiar el punto de atención tras haberla llamado.
  *     tags:
  *       - Mensajes
  *     security:
@@ -248,6 +235,27 @@ router.patch('/:id/retire', messageController.retireMessage);
  *         description: Identificador único del mensaje a repetir
  *         schema:
  *           type: string
+  *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Message'
+ *           examples:
+ *             llamada_normal:
+ *               summary: Llamada de turno normal
+ *               value:
+ *                 ticket: "A047"
+ *                 content: "Turno A047 - Consulta 3"
+ *                 target: "SP_CARDIO_03"
+ *                 priority: 1
+ *             llamada_urgente:
+ *               summary: Llamada urgente
+ *               value:
+ *                 ticket: "URGENTE"
+ *                 content: "Atención inmediata - Consulta 1"
+ *                 target: "SP_CARDIO_01"
+ *                 priority: 5
  *     responses:
  *       200:
  *         description: Llamada repetida exitosamente

@@ -14,9 +14,10 @@ const router = express.Router();
 
 const nodeController = require('../controllers/nodeController');
 
+
 /**
  * @swagger
- * /:
+ * /nodes:
  *   get:
  *     summary: Estado de nodos de visualización
  *     description: Obtiene información sobre todos los nodos de visualización registrados en el sistema
@@ -69,7 +70,7 @@ router.get('/', nodeController.getNodes);
 
 /**
  * @swagger
- * /{id}/control:
+ * /nodes/{id}/control:
  *   post:
  *     summary: Control remoto de pantallas
  *     description: |
