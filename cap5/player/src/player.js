@@ -161,9 +161,16 @@ async function initializeServices() {
         client.send(JSON.stringify(payload));
       });
     });
-    
+
+    mqttClient.on('spptze:player:mqtt:retract', (topic, payload) => {
+      // La retirada de llamada recibida vía MQTT se reenvia a los clientes WebSocket
+      socketServer.clients.forEach( (client) => {
+        client.send(JSON.stringify(payload));
+      });
+    });
+
     mqttClient.on('spptze:player:mqtt:control', (topic, payload) => {
-      // El mensaje de control recibido vía MQTT se procesa
+      // El mensaje de control recibido vía MQTT se procesa en cecControl
       cecControl.processControlCommand(payload);
     });
 

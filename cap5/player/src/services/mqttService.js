@@ -58,6 +58,8 @@ class MQTTService extends EventEmitter {
         // Suscribirse a topic específico del nodo en el sistema, donde se recibirán mensajes
         //de configuración (suscripciones) y también de control de pantalla
         this.subscribe(`spptze/system/nodes/${this.serialNumber}`, true);
+        // Topic para recibir notificaciones de retirada de llamadas
+        this.subscribe('spptze/messages/retract', true);
 
         this.publish('spptze/system/nodeup', { serialNumber: this.serialNumber });
         resolve();
@@ -184,9 +186,14 @@ class MQTTService extends EventEmitter {
           this.emit('spptze:player:mqtt:control', topic, payload); // a manejar en player.js
         }
       } else if (topic.startsWith('spptze/messages/')) {
-        // Mensaje de llamada de turno
-        payload.deliveredAt = timestamp;
-        this.emit('spptze:player:mqtt:message', topic, payload); // a manejar en player.js
+        if (topic == 'spptze/messages/retract') {
+          // Retirada de mensaje de llamada
+          this.emit('spptze:player:mqtt:retract', topic, payload);
+        } else {
+          // Mensaje de llamada de turno
+          payload.deliveredAt = timestamp;
+          this.emit('spptze:player:mqtt:message', topic, payload); // a manejar en player.js
+        }
       } else {
         throw new Error(`No handler for topic '${topic}'`);
       }
