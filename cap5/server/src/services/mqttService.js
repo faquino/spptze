@@ -200,7 +200,7 @@ class MQTTService extends EventEmitter {
    * @param {string} id - Identificador del mensaje a retirar
    */
   async publishMessageRetract(id) {
-    await this.publish('spptze/messages/retract', { id: id });
+    await this.publish('spptze/messages/retract', { retract: id });
   }
 
   /**

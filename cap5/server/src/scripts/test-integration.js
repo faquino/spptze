@@ -195,6 +195,82 @@ async function testEndToEndFlow() {
   }
 }
 
+async function testRetractFlow() {
+  console.log('\nPrueba de publicación y retirada');
+  console.log('-'.repeat(50));
+
+  try {
+    // Simular flujo real: HIS (Sist. externo) envía llamada → API → BD → resolución nodos
+    const system = await ExternalSystem.findByPk('HIS_SIHGA');
+    if (!system) throw new Error('Sistema HIS_SIHGA no encontrado');
+
+    console.log('Simular llamada desde HIS...');
+    const newMessage = {
+      ticket: 'ZZ99',
+      content: 'C-04',
+      target: 'CARDIO_MAÑANA_DRG',
+      targetType: 'service_point',
+      externalRef: 'INTEGRATION_TEST'
+    };
+    
+    const createResponse = await makeRequest('POST', '/messages', newMessage, system.apiKey);
+    if (!createResponse.ok) {
+      throw new Error(`Error creando mensaje: ${JSON.stringify(createResponse.data)}`);
+    }
+    console.log('Mensaje publicado:', createResponse.data.id)
+    await delay(500);
+    const retractResponse = await makeRequest('PATCH', `/messages/${createResponse.data.id}/retract`, null, system.apiKey);
+    if (!retractResponse.ok) throw new Error('Error retirando mensaje');
+    console.log('Mensaje Retirado:', JSON.stringify(retractResponse.data));
+    return true;
+
+  } catch (error) {
+    console.error('Error en flujo E2E:', error.message);
+    return false;
+  }
+}
+
+async function testRepeatFlow() {
+  console.log('\nPrueba de publicación y repetición');
+  console.log('-'.repeat(50));
+
+  try {
+    // Simular flujo real: HIS (Sist. externo) envía llamada → API → BD → resolución nodos
+    const system = await ExternalSystem.findByPk('HIS_SIHGA');
+    if (!system) throw new Error('Sistema HIS_SIHGA no encontrado');
+
+    console.log('Simular llamada desde HIS...');
+    const newMessage = {
+      ticket: 'TR01',
+      content: 'C-13',
+      target: 'CARDIO_MAÑANA_DRG',
+      targetType: 'service_point',
+      externalRef: 'INTEGRATION_TEST'
+    };
+    
+    const createResponse = await makeRequest('POST', '/messages', newMessage, system.apiKey);
+    if (!createResponse.ok) {
+      throw new Error(`Error creando mensaje: ${JSON.stringify(createResponse.data)}`);
+    }
+    console.log('Mensaje publicado:', createResponse.data.id)
+    await delay(500);
+    const repMessage = {
+      ...newMessage,
+      ticket: 'TR01',
+      content: 'C-15'
+    };
+
+    const repeatResponse = await makeRequest('PATCH', `/messages/${createResponse.data.id}/repeat`, repMessage, system.apiKey);
+    if (!repeatResponse.ok) throw new Error('Error retirando mensaje');
+    console.log('Mensaje repetido:', JSON.stringify(repeatResponse.data));
+    return true;
+
+  } catch (error) {
+    console.error('Error en flujo E2E:', error.message);
+    return false;
+  }
+}
+
 async function runAllTests() {
   console.log('SPPTZE - Pruebas de Integración');
   console.log('='.repeat(60));
@@ -202,7 +278,9 @@ async function runAllTests() {
   const results = {
     database: false,
     api: false,
-    endToEnd: false
+    endToEnd: false,
+    retract: false,
+    repeat: false
   };
 
   // Ejecutar pruebas
@@ -215,6 +293,16 @@ async function runAllTests() {
 
     if (results.api) {
       results.endToEnd = await testEndToEndFlow();
+      await delay(1000);
+
+      if (results.endToEnd) {
+        results.retract = await testRetractFlow();
+        await delay(1000);
+
+        if (results.retract) {
+          results.repeat = await testRepeatFlow();
+        }
+      }
     }
   }
 
@@ -225,6 +313,8 @@ async function runAllTests() {
   console.log(`BD Integration:     ${results.database ? 'PASS' : 'FAIL'}`);
   console.log(`API Integration:    ${results.api ? 'PASS' : 'FAIL'}`);
   console.log(`End-to-End Flow:    ${results.endToEnd ? 'PASS' : 'FAIL'}`);
+  console.log(`Retract Flow:       ${results.retract ? 'PASS' : 'FAIL'}`);
+  console.log(`Repeat Flow:        ${results.repeat ? 'PASS' : 'FAIL'}`);
 
   const allPassed = Object.values(results).every(r => r);
   console.log(`\nResultado Global:   ${allPassed ? 'SUCCESS' : 'FAILED'}`);

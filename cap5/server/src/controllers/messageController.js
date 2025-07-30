@@ -62,12 +62,9 @@ class MessageController {
       // Guardar mensaje en BD
       const message = await Message.create(messageData);
   
-      // Resolver el topic a usar para publicar el mensaje
+      // Resolver el topic a usar para publicar el mensaje y sus nodos destino
       const topic = await TopicResolver.buildTopic(effectiveTargetType, effectiveTargetId);
-      
-      // Calcular los nodos destino
       const targetNodes = await TopicResolver.getTargetNodes(message);
-  //    const targetNodes = await resolverUtils.resolveMessageTargets(message);
       
       // Crear los registros de entrega
       const deliveries = targetNodes.map(node => ({
@@ -77,11 +74,10 @@ class MessageController {
       
       if (deliveries.length > 0) {
         await MessageDelivery.bulkCreate(deliveries);
-        // await?
         MQTTService.publishMessage(topic, message);
       }
       
-      console.log(`Nueva llamada: ${ticket || 'N/A'} - ${content} -> ${targetNodes.length} nodos`);
+      console.log(`New message: ${message.id} (${targetNodes.length} nodes)`);
       
       res.status(201).json({ 
         id: message.id, 
@@ -137,53 +133,131 @@ class MessageController {
   }
 
 
-  async retireMessage(req, res) {
-    const { id } = req.params;
-    const index = messages.findIndex(m => m.id === id);
-    
-    if (index === -1) {
-      return res.status(404).json({ error: 'Message not found' });
+  async retractMessage(req, res) {
+    try {
+      const { id } = req.params;
+      const ahora = new Date();
+
+      // Recuperar el mensaje original
+      const message = await Message.findByPk(id);
+      if (!message) {
+        return res.status(404).json( { error: 'Message not found' });
+      }
+      // Comprobar que el mensaje no haya expirado aún
+      if (ahora > message.expiresAt) {
+        return res.status(400).json({ error: 'Expired messages cannot be retracted'});
+      }
+      // Comprobar que el mensaje no haya sido ya retirado antes
+      if (message.retractedAt) {
+        return res.status(400).json({ error: 'Message already retracted' });
+      }
+
+      // Marcar el mensaje en BD como retirado
+      await message.update({ retractedAt: ahora });
+      // Publicar el mensaje MQTT de retirada
+      MQTTService.publishMessageRetract(message.id);
+      console.log('Message retracted:', message.id);
+      res.json({
+        id: message.id,
+        retractedAt: message.retractedAt
+      });
+
+    } catch (error) {
+      console.error('Error retracting message:', error);
+      res.status(500).json({ error: 'Internal server error'});
     }
-    
-    const removed = messages.splice(index, 1)[0];
-    console.log(`Mensaje retirado: ${removed.ticket || removed.id}`);
-    
-    res.json({ 
-      id: removed.id, 
-      status: 'removed',
-      ticket: removed.ticket,
-      timestamp: new Date().toISOString()
-    });
   }
 
 
   async repeatMessage(req, res) {
-    const { id } = req.params;
-    const original = messages.find(m => m.id === id);
-    
-    if (!original) {
-      return res.status(404).json({ error: 'Original message not found' });
+    try {
+      const { content, target, targetType, priority} = req.body;
+      const { id } = req.params;
+      const ahora = new Date();
+
+      // Recuperar el mensaje original
+      const og_message = await Message.findByPk(id);
+      if (!og_message) {
+        return res.status(404).json({ error: 'Original message not found' });
+      }
+      // Comprobar que el mensaje no haya expirado aún
+      if (ahora > og_message.expiresAt) {
+        return res.status(400).json({ error: 'Expired messages cannot be repeated' });
+      }
+      if (og_message.retractedAt) {
+        return res.status(400).json({ error: 'Retracted messages cannot be repeated' });
+      }
+      // Marcar el mensaje original en BD como retirado
+      await og_message.update({ retractedAt: ahora });
+      // Publicar el mensaje MQTT de retirada
+      MQTTService.publishMessageRetract(id);
+
+      // Todas las repeticiones (o repeticiones de repeticiones) referencian el mensaje original
+      const ogMessageId = og_message.ogMessageId || id;
+      // Los campos no modificables por las repeticiones son: ticket, channel y externalRef
+      const messageData = {
+        id: req.requestId,
+        ogMessageId: ogMessageId,
+        ticket: og_message.ticket,
+        channel: og_message.channel,
+        externalRef: og_message.externalRef,
+        content: content || og_message.content,
+        priority: priority || og_message.priority,
+        sourceSystemId: req.system.id,
+        expiresAt: new Date(ahora + 15 * 60 * 1000)
+      }
+      
+      // El destino puede ser diferente del original
+      let effectiveTargetType = targetType;
+      let effectiveTargetId = null;
+      if (target) {
+        if (!effectiveTargetType)
+          effectiveTargetType (req.system.defaultTargetType == 'S') ? 'service_point' : 'location';
+
+        if (effectiveTargetType == 'service_point') {
+           messageData.targetServicePointId = await resolverUtils.resolveServicePoint(req.system.id, target);
+           effectiveTargetId = messageData.targetServicePointId;
+        } else {
+           messageData.targetLocationId = target;
+           effectiveTargetId = messageData.targetLocationId;
+        }
+      } else {
+        // Usar el target del mensaje original
+        messageData.targetServicePointId = og_message.targetServicePointId;
+        messageData.targetLocationId = og_message.targetLocationId;
+        effectiveTargetType = og_message.targetLocationId ? 'location' : 'service_point';
+        effectiveTargetId = og_message.targetLocationId || og_message.targetServicePointId;
+      }
+
+      // Guardar la repetición y publicar el mensaje de retirada del original
+      const repetition = await Message.create(messageData);
+
+      // Resolver el topic a usar para publicar el mensaje y sus nodos destino
+      const topic = await TopicResolver.buildTopic(effectiveTargetType, effectiveTargetId);
+      const targetNodes = await TopicResolver.getTargetNodes(repetition);
+      // Crear registros de entrega
+      const deliveries = targetNodes.map(node => ({
+        messageId: repetition.id,
+        nodeId: node.id
+      }));
+      if (deliveries.length > 0) {
+        await MessageDelivery.bulkCreate(deliveries);
+        MQTTService.publishMessage(topic, repetition);
+      }
+
+      console.log(`Repeated message: ${id} -> ${repetition.id} (${targetNodes.length} nodes)`);
+      
+      res.status(201).json({ 
+        id: repetition.id, 
+        status: 'sent',
+        targetNodes: targetNodes.length,
+        timestamp: repetition.createdAt
+      });
+    } catch (error) {
+      console.error('Error repeating message:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-    
-    const repeated = {
-      ...original,
-      id: req.requestId,
-      createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15 min
-      status: 'repeated',
-      originalId: id,
-      sourceSystemId: req.system.id
-    };
-    
-    messages.unshift(repeated);
-    console.log(`Mensaje repetido: ${repeated.ticket || repeated.id}`);
-    
-    res.json({ 
-      id: repeated.id, 
-      status: 'repeated',
-      originalId: id,
-      timestamp: repeated.createdAt
-    });
+
   }
 
 
