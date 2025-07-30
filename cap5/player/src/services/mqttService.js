@@ -24,7 +24,8 @@ class MQTTService extends EventEmitter {
     this.nodeId = null;
     this.client = null;
     this.isConnected = false;
-    this.nodeSubscriptions = []; // Lista de topics de suscripción
+    this.sysSubs = []; // Lista de topics de suscripción - Sistema
+    this.msgSubs = []; // Lista de topics de suscripción - Mensajes
     this.heartbeatInterval = null;
     this.heartbeatInfoFun = heartbeatInfoFun;
     this.publishCount = 0; // Cuenta de mensajes publicados
@@ -41,7 +42,7 @@ class MQTTService extends EventEmitter {
    */
   async connect(brokerUrl, options = {}) {
     const defaultOptions = {
-      clientId: `spptze-server-${Date.now()}`,
+      clientId: `spptze-player-${this.serialNumber}-${Date.now()}`,
       clean: true,
       connectTimeout: 4000,
       ...options
@@ -68,7 +69,7 @@ class MQTTService extends EventEmitter {
       });
 
       this.client.on('message', (topic, message) => {
-        this.handleMessage(topic, message);
+        this.handleMessage(topic, message, Date.now());
       });
     });
   }
@@ -88,23 +89,32 @@ class MQTTService extends EventEmitter {
 
 
   /**
-   * Suscribirse al topic indicado
-   * @param {string} topic - Topic al que suscribirse
+   * Eliminar la suscripción al topic indicado
+   * @param {string} topic - Topic dal que des-suscribirse
    */
   unsubscribe(topic) {
     this.client.unsubscribe(topic);
     console.log(`MQTT: Unsubscribed from ${topic}`);
   }
 
-  subscribe(topic, persistent = false) {
+  /**
+   * Suscribirse al topic indicado
+   * @param {string} topic - Topic al que suscribirse
+   * @param {boolean} system - Indicación de si se trata de una suscripción a un topic de sistema o de distribución de mensajes
+   */
+  subscribe(topic, system = false) {
     this.client.subscribe(topic, (err) => {
       if (err)
         console.error(`MQTT: Error subscribing to ${topic}: ${err}`);
       else {
         console.log(`MQTT: Subscribed to ${topic}`);
-        // Evitar que la suscripción se elimine después en handleMessageSubs()
-        if (!persistent)
-          this.nodeSubscriptions.push(topic);
+        if (system) {
+          this.sysSubs.push(topic);
+        } else {
+          // Se trata más que nada de evitar que se eliminen las suscripciones 'de sistema' más adelante
+          //cuando se reciba la configuración y se invoque handleMessageSubs()
+          this.msgSubs.push(topic);
+        }
       }
     });
   }
@@ -159,23 +169,23 @@ class MQTTService extends EventEmitter {
   /**
    * Manejar mensajes MQTT recibidos
    */
-  async handleMessage(topic, message) {
-    const ahora = Date.now();
+  async handleMessage(topic, message, timestamp) {
     console.log('MQTT: DELIVER', topic);
     this.deliverCount++;
     try {
       const payload = JSON.parse(message.toString());
       
       if (topic.startsWith(`spptze/system/nodes/${this.serialNumber}`)) {
-        // Mensaje del servidor informando de las suscripciones necesarias 
         if (payload.subs) {
+          // Mensaje del servidor informando de las suscripciones necesarias 
           await this.handleMessageSubs(payload);
         } else if (payload.volumeLevel !== undefined || payload.powerStatus) {
+          // Mensaje para el control de la pantalla
           this.emit('spptze:player:mqtt:control', topic, payload); // a manejar en player.js
         }
       } else if (topic.startsWith('spptze/messages/')) {
         // Mensaje de llamada de turno
-        payload.deliveredAt = ahora;
+        payload.deliveredAt = timestamp;
         this.emit('spptze:player:mqtt:message', topic, payload); // a manejar en player.js
       } else {
         throw new Error(`No handler for topic '${topic}'`);
@@ -191,8 +201,8 @@ class MQTTService extends EventEmitter {
     if (payload.nodeId) this.nodeId = payload.nodeId;
     this.setupHeartbeat(payload.heartbeatInterval);
     // Limpiar suscripciones previas
-    while (this.nodeSubscriptions.length > 0) {
-      this.unsubscribe(this.nodeSubscriptions.pop());
+    while (this.msgSubs.length > 0) {
+      this.unsubscribe(this.msgSubs.pop());
     }
     for (const topic of payload.subs) {
       // Suscribirse a topics indicados desde el servidor central
@@ -205,7 +215,7 @@ class MQTTService extends EventEmitter {
    */
   getStats() {
     return {
-      nodeSubs: this.nodeSubscriptions.length,
+      nodeSubs: this.msgSubs.length,
       clientId: this.client?.options?.clientId,
       pubCount: this.publishCount,
       pubErrs: this.publishErrs,
