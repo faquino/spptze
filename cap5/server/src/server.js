@@ -53,19 +53,19 @@ app.use((req, res, next) => {
   next();
 });
 
-
-// RUTAS API
-// =============================================================
-const apiRoutes = require('./routes');
-app.use('/api/v1', apiRoutes);
-
-
 // Validación de parámetros en peticiones según especificación OpenAPI
 app.use(OpenApiValidator.middleware({
   apiSpec: swaggerSpec,
   validateRequests: true,
   validateResponses: false
 }));
+
+
+// RUTAS API
+// =============================================================
+const apiRoutes = require('./routes');
+app.use('/api/v1', apiRoutes);
+
 
 // RUTAS WEB
 // =============================================================
