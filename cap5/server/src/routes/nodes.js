@@ -98,16 +98,20 @@ router.get('/', nodeController.getNodes);
  *             encender:
  *               summary: Encender pantalla
  *               value:
- *                 action: power_on
+ *                 powerStatus: "on"
  *             apagar:
  *               summary: Apagar pantalla
  *               value:
- *                 action: power_off
+ *                 powerStatus: "standby"
  *             volumen:
  *               summary: Ajustar volumen
  *               value:
- *                 action: volume
- *                 value: "50"
+ *                 volumeLevel: 20
+ *             completo:
+ *               summary: Encender pantalla y ajustar volumen
+ *               value:
+ *                 powerStatus: "on"
+ *                 volumeLevel: 25
  *     responses:
  *       200:
  *         description: Comando enviado exitosamente
@@ -128,6 +132,12 @@ router.get('/', nodeController.getNodes);
  *                 timestamp:
  *                   type: string
  *                   format: date-time
+ *       400:
+ *         description: Comando inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       404:
  *         description: Nodo no encontrado
  *         content:

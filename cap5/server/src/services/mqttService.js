@@ -204,6 +204,15 @@ class MQTTService extends EventEmitter {
   }
 
   /**
+   * Publicar comando de control de nodo
+   * @param {string} serial 
+   * @param {Object} command 
+   */
+  async publishControl(serial, command) {
+    await this.publish(`spptze/system/nodes/${serial}`, command);
+  }
+
+  /**
    * Obtener estadísticas del servicio MQTT
    */
   getStats() {

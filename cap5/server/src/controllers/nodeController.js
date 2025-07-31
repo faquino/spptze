@@ -10,6 +10,7 @@
 // cap5/server/src/controllers/nodeController.js
 // =============================================================
 const { DisplayNode, Location } = require('../models');
+const MQTTService = require('../services/mqttService');
 
 class NodeController {
 
@@ -21,9 +22,10 @@ class NodeController {
           through: { attributes: ['showChildren', 'active'] }
         }]
       });
-      
+
+      const now = new Date();
       const nodesWithStatus = nodes.map(node => {
-        const now = new Date();
+//        const now = new Date();
         const lastSeenDiff = node.lastSeen ? now - new Date(node.lastSeen) : null;
         const isOnline = lastSeenDiff ? lastSeenDiff < 30000 : false; // 30 segundos
         
@@ -52,30 +54,35 @@ class NodeController {
 
   async controlNode(req, res) {
     const { id } = req.params;
-    const { action, value } = req.body;
+    const { powerStatus, volumeLevel } = req.body;
     
-    const node = nodes.find(n => n.id === id);
-    if (!node) {
-      return res.status(404).json({ error: 'Node not found' });
-    }
-    
-    const validActions = ['power_on', 'power_off', 'volume', 'refresh'];
-    if (!validActions.includes(action)) {
-      return res.status(400).json({ 
-        error: 'Invalid action',
-        validActions 
+    try {
+      // Recuperar nodo de BD
+      const node = await DisplayNode.findByPk(id);
+
+      if (!node)
+        return res.status(404).json({ error: 'Node not found' });
+
+      if (!node.active)
+        return res.status(400).json({ error: 'Node configured as inactive'} );
+
+      const controlCommand = {};
+      if (powerStatus)
+        controlCommand.powerStatus = powerStatus;
+      if (volumeLevel !== undefined)
+        controlCommand.volumeLevel = volumeLevel;
+      await MQTTService.publishControl(node.serialNumber, controlCommand);
+
+      res.json({
+        nodeId: id, 
+        command: controlCommand,
+        status: 'sent',
+        timestamp: new Date().toISOString()
       });
+    } catch (error) {
+      console.error('Error controlling node:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-    
-    console.log(`Control ${action} enviado a ${node.name}${value ? ` (${value})` : ''}`);
-    
-    res.json({
-      nodeId: id,
-      action,
-      value: value || null,
-      status: 'sent',
-      timestamp: new Date().toISOString()
-    });
   }
 
 }

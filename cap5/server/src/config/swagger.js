@@ -337,19 +337,24 @@ const swaggerOptions = {
         },
         NodeControl: {
           type: 'object',
-          required: ['action'],
           properties: {
-            action: {
+            powerStatus: {
               type: 'string',
-              enum: ['power_on', 'power_off', 'volume', 'refresh'],
-              description: 'Comando de control a enviar al nodo'
+              enum: ['on', 'standby'],
+              description: 'Estado de energía de la pantalla'
             },
-            value: {
-              type: 'string',
-              description: 'Valor adicional para el comando (ej: nivel de volumen)',
-              example: '50'
+            volumeLevel: {
+              type: 'integer',
+              minimum: 0,
+              maximum: 100,
+              description: 'Nivel de volumen (0-100)'
             }
-          }
+          },
+          additionalProperties: false,
+          anyOf: [
+            { required: ['powerStatus'] },
+            { required: ['volumeLevel'] }
+          ]
         }
       }
     },
