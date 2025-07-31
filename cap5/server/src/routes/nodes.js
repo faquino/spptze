@@ -44,20 +44,16 @@ const nodeController = require('../controllers/nodeController');
  *                       name:
  *                         type: string
  *                         example: Pantalla Sala Espera Cardiología
- *                       location:
- *                         type: string
- *                         example: AREA_CARDIO
- *                       status:
- *                         type: string
- *                         enum: [active, offline, maintenance]
+ *                       locations:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                         example: ["AREA_CARDIO", "PLANTA_1"]
  *                       isOnline:
  *                         type: boolean
  *                       lastSeen:
  *                         type: string
  *                         format: date-time
- *                       messagesCount:
- *                         type: integer
- *                         description: Mensajes activos en este nodo
  *                 total:
  *                   type: integer
  *                 online:

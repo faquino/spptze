@@ -25,17 +25,15 @@ class NodeController {
 
       const now = new Date();
       const nodesWithStatus = nodes.map(node => {
-//        const now = new Date();
         const lastSeenDiff = node.lastSeen ? now - new Date(node.lastSeen) : null;
         const isOnline = lastSeenDiff ? lastSeenDiff < 30000 : false; // 30 segundos
         
         return {
           id: node.id,
           name: node.name,
-          status: node.status,
+          locations: node.Locations?.map(loc => loc.name) || [],
           isOnline,
-          lastSeen: node.lastSeen,
-          locations: node.Locations?.map(loc => loc.name) || []
+          lastSeen: node.lastSeen
         };
       });
       

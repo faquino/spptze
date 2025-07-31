@@ -199,7 +199,16 @@ router.get('/:id', messageController.getMessageStatus);
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/MessageResponse'
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: Identificador del mensaje retirado
+ *                 retractedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Timestamp de cuándo se retiró el mensaje
+ *               required: ['id', 'retractedAt']
  *       400:
  *         description: Mensaje ya retirado anteriormente
  *         content:
@@ -236,7 +245,7 @@ router.patch('/:id/retract', messageController.retractMessage);
  *         schema:
  *           type: string
   *     requestBody:
- *       required: true
+ *       required: false
  *       content:
  *         application/json:
  *           schema:

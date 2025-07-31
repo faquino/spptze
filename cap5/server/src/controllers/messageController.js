@@ -247,7 +247,8 @@ class MessageController {
 
       console.log(`Repeated message: ${id} -> ${repetition.id} (${targetNodes.length} nodes)`);
       
-      res.status(201).json({ 
+      res.status(201).json({
+        originalId: ogMessageId,
         id: repetition.id, 
         status: 'sent',
         targetNodes: targetNodes.length,
