@@ -155,22 +155,25 @@ async function initializeServices() {
       });
     });
 
+    // Recibido mensaje de llamada via MQTT
     mqttClient.on('spptze:player:mqtt:message', (topic, payload) => {
-      // El mensaje de llamada recibido vía MQTT se reenvía a los clientes WebSocket
+      // Se deriva a los clientes WebSocket (UI en navegador)
       socketServer.clients.forEach( (client) => {
         client.send(JSON.stringify(payload));
       });
     });
 
+    // Recibida retirada de llamada via MQTT
     mqttClient.on('spptze:player:mqtt:retract', (topic, payload) => {
-      // La retirada de llamada recibida vía MQTT se reenvia a los clientes WebSocket
+      // Se deriva a los clientes WebSocket (UI en navegador)
       socketServer.clients.forEach( (client) => {
         client.send(JSON.stringify(payload));
       });
     });
 
+    // Recibido mensaje de control de pantallas
     mqttClient.on('spptze:player:mqtt:control', (topic, payload) => {
-      // El mensaje de control recibido vía MQTT se procesa en cecControl
+      // Se procesa en cecControl
       cecControl.processControlCommand(payload);
     });
 

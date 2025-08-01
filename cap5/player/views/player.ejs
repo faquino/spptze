@@ -505,15 +505,22 @@
           console.log('(WebSocket) Desconectado');
         };
 
+        // Manejador de evento WebSocket (mensaje recibido)
         datos.ws.onmessage = (event) => {
           const message = JSON.parse(event.data);
           if (message.ticket && message.content) { // ¿Es un mensaje de llamada?
             console.log(`(WebSocket) Mensaje recibido: ${message.ticket}`);
             if (!datos.llamando) {
+              // Si no se está procesando ya otro mensaje, procesar éste inmediatamente
               procesaMensaje(message);
             } else {
+              // Encolar
               datos.pendientes.push(message);
             }
+          } else if (message.retract) {
+
+          } else {
+
           }
         };
 
