@@ -336,7 +336,8 @@ const DisplayNode = (sequelize) => {
       { fields: ['serial_number'], unique: true },
       { fields: ['active'] },
       { fields: ['template_override_id'] },
-      { fields: ['last_seen'] }
+      { fields: ['last_seen'] },
+      { fields: ['active', 'last_seen']}
     ]
   });
 

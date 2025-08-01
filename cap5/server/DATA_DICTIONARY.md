@@ -1,6 +1,6 @@
 # Diccionario de Datos - Base de Datos SPPTZE
 
-*Generado el 30/7/2025, 18:02:45 por generate-data-dict.js a partir del modelo Sequelize*
+*Generado el 1/8/2025, 12:07:10 por generate-data-dict.js a partir del modelo Sequelize*
 
 ## Índice de Tablas
 
@@ -49,6 +49,7 @@ Nodos de visualización inventariados en el sistema
 - **Índice 2:** active
 - **Índice 3:** template_override_id
 - **Índice 4:** last_seen
+- **Índice 5:** active, last_seen
 
 #### Funciones Auxiliares
 

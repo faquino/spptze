@@ -13,12 +13,23 @@ const mqtt = require('mqtt');
 const EventEmitter = require('events');
 const nodeManager = require('./nodeManager');
 
+
+function elapsedMs(since) {
+  return since ? (Date.now() - since) : Number.MAX_SAFE_INTEGER;
+}
+
+function passedMs(since, thresholdMs) {
+  return elapsedMs(since) > thresholdMs;
+}
+
 class MQTTService extends EventEmitter {
   constructor() {
     super();
     this.client = null;
     this.isConnected = false;
+    this.connectedAt = null;
     this.nodeSubscriptions = new Map(); // nodeId -> [topics]
+    this.lastConnErrTime = null;
   }
 
   /**
@@ -29,15 +40,30 @@ class MQTTService extends EventEmitter {
       clientId: `spptze-server-${Date.now()}`,
       clean: true,
       connectTimeout: 4000,
+      reconnectPeriod: 30000,
+      maxReconnectTimes: 20,
+      keepalive: 60,
+      reschedulePings: true,
       ...options
     };
 
     return new Promise((resolve, reject) => {
       this.client = mqtt.connect(brokerUrl, defaultOptions);
 
+      this.client.on('reconnect', () => {
+        console.log('MQTT: Attempting to reconnect...');
+      });
+
+      this.client.on('offline', () => {
+        console.log('MQTT: Connection went offline');
+        this.isConnected = false;
+      });
+
       this.client.on('connect', () => {
         console.log('MQTT: Connected to broker');
         this.isConnected = true;
+        this.connectedAt = new Date();
+        this.lastConnErrTime = null;
 
         // Suscribirse a topics del sistema
         this.client.subscribe('spptze/system/nodeup', (err) => {
@@ -57,8 +83,17 @@ class MQTTService extends EventEmitter {
       });
 
       this.client.on('error', (error) => {
-        console.error('MQTT: Connection error:', error);
-        reject(error);
+        if (error.code === 'ECONNREFUSED') {
+          if (passedMs(this.lastConnErrTime, 5 * 60 * 1000)) {
+            console.error('MQTT: Connection error:', error);
+            this.lastConnErrTime = Date.now();
+          } else {
+            console.log(`MQTT: Broker unavailable, retrying every ${defaultOptions.reconnectPeriod/1000} seconds...`);
+          }
+        } else {
+          console.error('MQTT: Error:', error);
+        }
+        if (!this.isConnected) reject(error);
       });
 
       this.client.on('message', (topic, message) => {
@@ -219,7 +254,8 @@ class MQTTService extends EventEmitter {
     return {
       connected: this.isConnected,
       activeNodeSubscriptions: this.nodeSubscriptions.size,
-      clientId: this.client?.options?.clientId
+      clientId: this.client?.options?.clientId,
+      lastConnect: this.connectedAt
     };
   }
 
