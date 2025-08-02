@@ -184,6 +184,7 @@ class MessageController {
       if (ahora > og_message.expiresAt) {
         return res.status(400).json({ error: 'Expired messages cannot be repeated' });
       }
+      // Comprobar que el mensaje no haya sido retirado
       if (og_message.retractedAt) {
         return res.status(400).json({ error: 'Retracted messages cannot be repeated' });
       }

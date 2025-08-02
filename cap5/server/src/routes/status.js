@@ -150,11 +150,11 @@ const statusController = require('../controllers/statusController');
  *                         status:
  *                           type: string
  *                           enum: [connected, disconnected, error]
- *                           description: Estado de conexión al broker MQTT
+ *                           description: Estado de conexión al bróker MQTT
  *                           example: connected
  *                         broker:
  *                           type: string
- *                           description: URL del broker MQTT
+ *                           description: URL del bróker MQTT
  *                           example: "mqtt://localhost:1883"
  *                         clientId:
  *                           type: string
