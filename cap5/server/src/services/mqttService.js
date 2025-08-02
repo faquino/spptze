@@ -14,10 +14,21 @@ const EventEmitter = require('events');
 const nodeManager = require('./nodeManager');
 
 
+/**
+ * Determina los milisegundos transcurridos desde el instante expresado por el parámetro
+ * @param {number} since  - Instante (obtenido p.ej. con Date.now() o [Date].getTime())
+ * @returns {number} - Milisegundos transcurridos desde el instante expresado por el parámetro
+ */
 function elapsedMs(since) {
   return since ? (Date.now() - since) : Number.MAX_SAFE_INTEGER;
 }
 
+/**
+ * Determina si han transcurrido al menos thresholdMs desde el instante expresado por {@link since}
+ * @param {number} since - Instante de comienzo del intervalo
+ * @param {number} thresholdMs - Longitud del ntervalo expresada en milisegundos
+ * @returns {boolean} - Si ha transcurrido la 
+ */
 function passedMs(since, thresholdMs) {
   return elapsedMs(since) > thresholdMs;
 }
@@ -30,10 +41,17 @@ class MQTTService extends EventEmitter {
     this.connectedAt = null;
     this.nodeSubscriptions = new Map(); // nodeId -> [topics]
     this.lastConnErrTime = null;
+    this.publishCount = 0; // Cuenta de mensajes publicados
+    this.publishErrs = 0;  // Cuenta de errores al publicar
+    this.deliverCount = 0  // Cuenta de mensajes recibidos
+    this.deliverErrs = 0;  // Cuenta de errores al recibir
   }
 
+
   /**
-   * Conectar al bróker MQTT
+   * Conectarse al bróker MQTT
+   * @param {string} brokerUrl - Cadena con la URL de la forma mqtt://<mqtt_broker_host>
+   * @param {Object} options - Opciones de conexión (QoS, LWT etc.)
    */
   async connect(brokerUrl, options = {}) {
     const defaultOptions = {
@@ -84,6 +102,7 @@ class MQTTService extends EventEmitter {
 
       this.client.on('error', (error) => {
         if (error.code === 'ECONNREFUSED') {
+          // Evitar spammear el log de consola con trazas de ECONNREFUSED
           if (passedMs(this.lastConnErrTime, 5 * 60 * 1000)) {
             console.error('MQTT: Connection error:', error);
             this.lastConnErrTime = Date.now();
@@ -98,7 +117,7 @@ class MQTTService extends EventEmitter {
 
       this.client.on('message', (topic, message) => {
         console.log('MQTT: DELIVER', topic);
-        this.handleMessage(topic, message);
+        this.handleMessage(topic, message, Date.now());
       });
     });
   }
@@ -107,18 +126,19 @@ class MQTTService extends EventEmitter {
   /**
    * Publicar mensaje (data) en un topic
    * @param {string} topic - Topic MQTT en el que publicar el mensaje
-   * 
+   * @param {any} data - Datos a publicar
+   * @param {Object} [options] - Opciones de publicación (QoS, retain, etc.)
    */
   async publish(topic, data, options = {}) {
-    if (!this.isConnected) {
-      throw new Error('MQTT client not connected');
-    }
+    if (!this.isConnected) throw new Error('MQTT client not connected');
 
     const payload = typeof data === 'string' ? data : JSON.stringify(data);
-    
+
     return new Promise((resolve, reject) => {
+      this.publishCount++;
       this.client.publish(topic, payload, options, (error) => {
         if (error) {
+          this.publishErrs++;
           reject(error);
         } else {
           console.log('MQTT: PUBLISH', topic);
@@ -128,10 +148,12 @@ class MQTTService extends EventEmitter {
     });
   }
 
+
   /**
    * Manejar mensajes MQTT recibidos
    */
-  async handleMessage(topic, message) {
+  async handleMessage(topic, message, timestamp) {
+    this.deliverCount++;
     try {
       const payload = JSON.parse(message.toString());
       
@@ -142,13 +164,13 @@ class MQTTService extends EventEmitter {
       } else if (topic === 'spptze/messages/ack') {
         await this.handleMessageAck(topic, payload);
       } else {
-        throw new Error(`No handler for topic: '${topic}'`)
+        throw new Error(`No handler for topic '${topic}'`);
       }
       
       // Emitir evento para otros componentes
       this.emit('message', { topic, payload });
     } catch (error) {
-      console.error('MQTT: Error handling message:', error.message);
+      console.error('MQTT: Error handling message:', error);
     }
   }
 
@@ -189,7 +211,7 @@ class MQTTService extends EventEmitter {
    * @param {object} payload 
    */
   async handleNodeHeartbeat(topic, payload) {
-    console.log('Hearteat payload: ', JSON.stringify(payload));
+    console.log('MQTT: Hearteat from node: ', payload.nodeId || payload.serialNumber);
     if (payload?.serialNumber)
       await nodeManager.getNodeBySN(payload.serialNumber);
     else
@@ -217,7 +239,7 @@ class MQTTService extends EventEmitter {
    * @param {Object} message 
    */
   async publishMessage(topic, message) {
-    const messageData = {
+    const payload = {
       id: message.id,
       channel: message.channel,
       ticket: message.ticket,
@@ -225,8 +247,9 @@ class MQTTService extends EventEmitter {
       priority: message.priority,
       createdAt: message.createdAt
     };
+    if (message.ogMessageId) payload.ogMessageId = message.ogMessageId;
 
-    await this.publish(topic, messageData, { qos: 1 });
+    await this.publish(topic, payload, { qos: 1 });
     console.log(`MQTT: Published message ${message.id} to ${topic}`);
   }
 
@@ -234,8 +257,14 @@ class MQTTService extends EventEmitter {
    * Publicar retirade de mensaje
    * @param {string} id - Identificador del mensaje a retirar
    */
-  async publishMessageRetract(id) {
-    await this.publish('spptze/messages/retract', { retract: id });
+  async publishMessageRetract(message) {
+    const payload = {
+      retract: message.id
+    };
+    if (message.ogMessageId) payload.ogMessageId = message.ogMessageId;
+
+    await this.publish('spptze/messages/retract', payload);
+    console.log(`MQTT: Retired message ${message.id}`);
   }
 
   /**
@@ -255,7 +284,11 @@ class MQTTService extends EventEmitter {
       connected: this.isConnected,
       activeNodeSubscriptions: this.nodeSubscriptions.size,
       clientId: this.client?.options?.clientId,
-      lastConnect: this.connectedAt
+      lastConnect: this.connectedAt,
+      pubCount: this.publishCount,
+      pubErrs: this.publishErrs,
+      rcvCount: this.deliverCount,
+      rcvErrs: this.deliverErrs
     };
   }
 

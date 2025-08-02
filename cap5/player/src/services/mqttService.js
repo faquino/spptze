@@ -12,14 +12,26 @@
 const mqtt = require('mqtt');
 const EventEmitter = require('events');
 
+// Devuelve true si value es una función
 function isFun(value) {
   return (typeof value === 'function');
 }
 
+/**
+ * Determina los milisegundos transcurridos desde el instante expresado por el parámetro
+ * @param {number} since  - Instante (obtenido p.ej. con Date.now() o [Date].getTime())
+ * @returns {number} - Milisegundos transcurridos desde el instante expresado por el parámetro
+ */
 function elapsedMs(since) {
   return since ? (Date.now() - since) : Number.MAX_SAFE_INTEGER;
 }
 
+/**
+ * Determina si han transcurrido al menos thresholdMs desde el instante expresado por {@link since}
+ * @param {number} since - Instante de comienzo del intervalo
+ * @param {number} thresholdMs - Longitud del ntervalo expresada en milisegundos
+ * @returns {boolean} - Si ha transcurrido la 
+ */
 function passedMs(since, thresholdMs) {
   return elapsedMs(since) > thresholdMs;
 }
@@ -64,7 +76,7 @@ class MQTTService extends EventEmitter {
       this.client = mqtt.connect(brokerUrl, defaultOptions);
 
       this.client.on('reconnect', () => {
-       console.log('MQTT: Attempting to reconnect...');
+        console.log('MQTT: Attempting to reconnect...');
       });
 
       this.client.on('offline', () => {
@@ -84,11 +96,13 @@ class MQTTService extends EventEmitter {
         this.subscribe('spptze/messages/retract', true);
 
         this.publish('spptze/system/nodeup', { serialNumber: this.serialNumber });
+
         resolve();
       });
 
       this.client.on('error', (error) => {
         if (error.code === 'ECONNREFUSED') {
+          // Evitar spammear el log de consola con trazas de ECONNREFUSED
           if (passedMs(this.lastConnErrTime, 5 * 60 * 1000)) {
             console.error('MQTT: Connection error:', error);
             this.lastConnErrTime = Date.now();
