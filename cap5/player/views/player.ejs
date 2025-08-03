@@ -11,12 +11,7 @@
     <meta name="author" content="Francisco José Aquino García">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SPPTZE-player - Presentación de llamadas de turno</title>
-
-    <link rel="apple-touch-icon" sizes="180x180" href="/web/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/web/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/web/favicon-16x16.png">
-    <link rel="manifest" href="/web/site.webmanifest">
-
+    <link rel="icon" type="image/x-icon" href="/web/favicon.ico">
     <link rel="stylesheet" href="/web/3p/fontawesome/css/fontawesome.min.css">
     <link rel="stylesheet" href="/web/3p/fontawesome/css/solid.min.css">
     <style type="text/css">
@@ -114,7 +109,9 @@
         position: absolute;
         width: 100%;
         height: 100%;
-        background-image: url(/web/provincial_bw.jpg);
+        /*
+        background-image: url(/web/imgFondo.jpg);
+        */
         background-size: cover;
         box-shadow: inset 0 0 20px 20px var(--fondo-cuerpo);
         opacity: 0.15;
@@ -213,13 +210,14 @@
       <aside class="promo">
         <!--
           <video width="100%" style="display: block; margin: auto 0;" controls autoplay loop muted>
-            <source src="videogrande.mp4" type="video/mp4">
+            <source src="video.mp4" type="video/mp4">
           </video>
         -->
         <div class="imgfondo"></div>
         <div class="cartel"></div>
         <!--
-          Las frases en .frases ser irán rotando en .cartel -->
+          Las frases en .frases ser irán rotando en .cartel
+          TODO: Mecanismo para obtener las frases u otros contenidos a mostrar -->
         <ul style="display:none" class="frases">
           <li>Por favor, permanezca a la espera de su turno</li>
           <li>Recuerde mantener la distancia interpersonal de seguridad</li>
@@ -273,7 +271,7 @@
                       $cartel: null,
                       warns: { no_autoPlay: true,
                                no_webSocket: true },
-                      ws: null, // El WebSocket con el backend NodeJS
+                      ws: null, // Cliente WebSocket conectado al backend NodeJS del nodo de visualización
                     };
 
       const pad2 = (num) => num.toString().padStart(2, '0');
@@ -294,53 +292,66 @@
       }
 
       // :-(
-      // AudioContext.status siempre es undefined, y Chrome 122 no soporta navigator.getAutoplayPolicy()
+      // AudioContext.status siempre es undefined, y Chrome (v122..v138) no soporta navigator.getAutoplayPolicy()
       //function testAutoPlay() {
       //  console.log(`AudioContext status: "${datos.audioContext.status}"`);
       //  datos.status.no_autoPlay = (datos.audioContext.status != 'running');
       //}
 
-      // La reproducción de audio sin interacción previa con el usuario es un tema delicado
+      // La reproducción de audio sin interacción previa del usuario (como es el caso) es un tema a considerar
       // Ver https://developer.mozilla.org/en-US/docs/Web/Media/Autoplay_guide
       //     https://developer.mozilla.org/en-US/docs/Web/HTML/Element/audio
-      function play(lista) {
+      function playAudio(lista) {
         return new Promise(function (resolve, reject) {
           if (lista.length == 0) {
-            resolve({ok:true});
-          } else {
-            let trackNo = 0;
-            const audioElement = document.createElement('audio');
-//            audioElement.setAttribute('autoplay', 'autoplay');
-            audioElement.setAttribute('src', 'data:' + lista[trackNo].audioMIME + ';base64,' + lista[trackNo].audioB64);
-
-            audioElement.addEventListener('ended', function () {
-              setTimeout(() => {
-                if (++trackNo < lista.length) {
-                  audioElement.setAttribute('src', 'data:' + lista[trackNo].audioMIME + ';base64,' + lista[trackNo].audioB64);
-                } else {
-                  audioElement.remove();
-                  resolve({ok:true});
-                }
-              }, 0);
-            }, false);
-
-            audioElement.addEventListener('canplaythrough', function () {
-              const playPromise = audioElement.play();
-              if (playPromise != undefined) {
-                playPromise
-                  .then(() => {
-                    datos.warns.no_autoPlay = false;
-                  }).catch((error) => {
-                    resolve({ok:false});
-                    console.log('Error al reproducir el audio: ' + error.message);
-                    if (error.name === 'NotAllowedError') {
-                      console.log('Revisar parámetros de inicio del navegador y/o configuración de permisos del navegador para el sitio');
-                      datos.warns.no_autoPlay = true;
-                    }
-                  });
-              }
-            }, false);
+            resolve({ ok: true });
+            return;
           }
+          let trackNo = 0;
+          const audioElement = document.createElement('audio');
+
+          const playNextOrCleanup = (playErrs) => {
+            if ((trackNo < lista.length) && !playErrs) {
+              const audioTrack = lista[trackNo++];
+              audioElement.setAttribute('src', `data:${audioTrack.audioMIME};base64,${audioTrack.audioB64}`);
+            } else {
+              audioElement.remove();
+              resolve({ ok: !playErrs});
+            }
+          };
+
+          // Ha finalizado la reproducción del medio de audio
+          audioElement.addEventListener('ended', function () {
+            setTimeout(() => { playNextOrCleanup(); }, 0);
+          }, false);
+
+          // Es posible iniciar la reproducción del medio de audio
+          audioElement.addEventListener('canplaythrough', function () {
+            const playPromise = audioElement.play();
+            if (playPromise != undefined) {
+              playPromise
+                .then(() => {
+                  datos.warns.no_autoPlay = false;
+                }).catch((error) => {
+                  console.log('Error al reproducir el audio: ' + error.message);
+                  if (error.name === 'NotAllowedError') {
+                    console.log('Revisar parámetros de inicio del navegador y/o configuración de permisos del navegador para el sitio');
+                    datos.warns.no_autoPlay = true;
+                  }
+                  setTimeout(() => { playNextOrCleanup(true); }, 0);
+                });
+            } else { // Navegadores antiguos no devuelven nada en play()
+              console.log('Navegador no soporta Promise en HTMLAudioElement.play()');
+              setTimeout(() => { playNextOrCleanup(true); }, 0);
+            }
+          }, false);
+
+          audioElement.addEventListener('error', function () {
+            console.log('Error cargando o reproduciendo audio');
+            setTimeout(() => { playNextOrCleanup(true); }, 0);
+          });
+
+          playNextOrCleanup();
         });
       }
 
@@ -390,6 +401,8 @@
           $liTicket.find('.puerta').text(llamada.content);
           $liTicket.attr('data-puerta', llamada.content)
                    .attr('data-ticket', llamada.ticket)
+                   .attr('data-message-id', llamada.id)
+                   .attr('data-og-message-id', llamada.ogMessageId)
                    .removeClass('oculto');
         }
         $liTicket.attr('data-veces', replay ? (veces + 1) : 1)
@@ -447,7 +460,7 @@
         if (message.audio && message.audio.audioB64) {
           playList.push({audioB64: message.audio.audioB64, audioMIME: message.audio.audioMIME});
         }
-        play(playList).then(function (result) {
+        playAudio(playList).then(function (result) {
           if (datos.pendientes.length > 0) {
             setTimeout(function () {
               const msg = datos.pendientes.shift();
@@ -488,7 +501,7 @@
         // Obtener sonido de aviso del servidor web para poder reproducirlo cuando sea necesario
         doGetAviso(datos.avisoUrl).then(function () {
           // Reproducir sonido de aviso al cargar la página para señalar estado autoplay
-          play(initPlayList()).then(function (result) {
+          playAudio(initPlayList()).then(function (result) {
             refreshWarns();
           });
         });
