@@ -155,7 +155,7 @@ class MessageController {
       // Marcar el mensaje en BD como retirado
       await message.update({ retractedAt: ahora });
       // Publicar el mensaje MQTT de retirada
-      MQTTService.publishMessageRetract(message.id);
+      MQTTService.publishMessageRetract(message);
       console.log('Message retracted:', message.id);
       res.json({
         id: message.id,

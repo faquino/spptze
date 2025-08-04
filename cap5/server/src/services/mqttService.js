@@ -264,7 +264,7 @@ class MQTTService extends EventEmitter {
     if (message.ogMessageId) payload.ogMessageId = message.ogMessageId;
 
     await this.publish('spptze/messages/retract', payload);
-    console.log(`MQTT: Retired message ${message.id}`);
+    console.log(`MQTT: Retracted message ${message.id}`);
   }
 
   /**
