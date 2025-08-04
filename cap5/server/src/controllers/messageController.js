@@ -191,7 +191,10 @@ class MessageController {
       // Marcar el mensaje original en BD como retirado
       await og_message.update({ retractedAt: ahora });
       // Publicar el mensaje MQTT de retirada
-      MQTTService.publishMessageRetract(id);
+      // TODO si no se marca esto de algún modo como 'retirada por repetición', la repetición será filtrada en el nodo
+      //      ¿O podría identificarse la situación de algún otro modo en messageFilter en el nodo de visualización, y
+      //      si se rediseña la cache de retiradas?
+      MQTTService.publishMessageRetract(og_message);
 
       // Todas las repeticiones (o repeticiones de repeticiones) referencian el mensaje original
       const ogMessageId = og_message.ogMessageId || id;
