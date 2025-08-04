@@ -217,7 +217,7 @@ async function testRetractFlow() {
     if (!createResponse.ok) {
       throw new Error(`Error creando mensaje: ${JSON.stringify(createResponse.data)}`);
     }
-    console.log('Mensaje publicado:', createResponse.data.id)
+    console.log('Mensaje publicado:', createResponse.data.id);
     await delay(500);
     const retractResponse = await makeRequest('PATCH', `/messages/${createResponse.data.id}/retract`, null, system.apiKey);
     if (!retractResponse.ok) throw new Error('Error retirando mensaje');
@@ -252,7 +252,7 @@ async function testRepeatFlow() {
     if (!createResponse.ok) {
       throw new Error(`Error creando mensaje: ${JSON.stringify(createResponse.data)}`);
     }
-    console.log('Mensaje publicado:', createResponse.data.id)
+    console.log('Mensaje publicado:', createResponse.data.id);
     await delay(500);
     const repMessage = {
       ...newMessage,
