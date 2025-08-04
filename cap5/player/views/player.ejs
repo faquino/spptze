@@ -19,6 +19,8 @@
         --fondo-cuerpo: #2a2b6c; /* Un azul cobalto */
         --fondo-llamada-impar: #36366a; /* una variación de fondo-cuerpo */
         --ultima-llamada: #ff8100; /* un naranja intenso */
+        --color-llamada: white;
+        --color-retirada: #AAA;
         --color-texto-cartel: orange;
         --altura-fila: 135px;
       }
@@ -134,7 +136,7 @@
         opacity: 0;
         transform: rotateX(-90deg);
         transition: transform 0.5s cubic-bezier(0.36, -0.64, 0.34, 1.76);
-        color: white;
+        color: var(--color-llamada);
         border-radius: 32px 0 0 32px;
       }
       .llamadas li.show {
@@ -150,6 +152,15 @@
       }
       .llamadas li.show:nth-child(odd) {
         background-color: var(--fondo-llamada-impar);
+      }
+      .llamadas li.retirada {
+        text-decoration: line-through;
+        opacity: 0.6;
+        transition: opacity 0.5s ease;
+      }
+      .llamadas li.retirada .ticket,
+      .llamadas li.retirada .puerta {
+        color: var(--color-retirada);
       }
 /*  Caracterización visual de llamadas repetidas
     .llamadas li.show.replay div.replay {
@@ -426,19 +437,25 @@
         }, 0);
       }
 
-      function ponerFechaYHora() {
-        const dt = new Date();
-        // Actualizar fecha y hora en la página
-        document.getElementById('FechaActual').innerHTML = dt.toLocaleDateString('<%=localeString%>'); // TODO incluir localeString en datos de plantilla ejs
-        document.getElementById('HoraActual').innerHTML = dt.toLocaleTimeString().split(':').splice(0, 2).join(':');
+      function eliminarItemsViejos(timestamp) {
         // Eliminar entradas antiguas de la lista de llamadas (ver datos.timeoutBorrado)
         datos.$llamadas.find('li:not(.oculto)').each(function () {
           const $li = $(this);
-          if (dt.getTime() - $li.attr('data-ult-llamada') > datos.timeoutBorrado * 60000) {
+          if (timestamp.getTime() - $li.attr('data-ult-llamada') > datos.timeoutBorrado * 60000) {
             $li.removeClass('show');
             setTimeout(function () { $li.remove(); }, 1000);
           }
         });
+      }
+
+      function ponerFechaYHora() {
+        const ahora = new Date();
+        // Actualizar fecha y hora en la página. TODO incluir localeString en datos de plantilla ejs
+        document.getElementById('FechaActual').innerHTML = ahora.toLocaleDateString('<%=localeString%>');
+        document.getElementById('HoraActual').innerHTML = ahora.toLocaleTimeString().split(':').splice(0, 2).join(':');
+
+        eliminarItemsViejos(dt);
+
         // Actualizar los indicadores de avisos
         refreshWarns();
       }
