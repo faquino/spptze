@@ -60,7 +60,7 @@ class MQTTService extends EventEmitter {
       connectTimeout: 4000,
       reconnectPeriod: 30000,
       maxReconnectTimes: 20,
-      keepalive: 60,
+      keepalive: process.env.NODE_ENV == 'development' ? 0 : 60,
       reschedulePings: true,
       ...options
     };
