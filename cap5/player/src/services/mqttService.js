@@ -11,6 +11,7 @@
 // =============================================================
 const mqtt = require('mqtt');
 const EventEmitter = require('events');
+const MessageFilter = require('./messageFilter');
 
 // Devuelve true si value es una función
 function isFun(value) {
@@ -52,8 +53,15 @@ class MQTTService extends EventEmitter {
     this.publishErrs = 0;  // Cuenta de errores al publicar
     this.deliverCount = 0  // Cuenta de mensajes recibidos
     this.deliverErrs = 0;  // Cuenta de errores al recibir
+    this.messageFilter = new MessageFilter();
   }
 
+  destroy() {
+    if (this.messageFilter)
+      this.messageFilter.destroy();
+    if (this.heartbeatInterval)
+      clearInterval(this.heartbeatInterval);
+  }
 
   /**
    * Conectarse al bróker MQTT
@@ -233,11 +241,15 @@ class MQTTService extends EventEmitter {
       } else if (topic.startsWith('spptze/messages/')) {
         if (topic == 'spptze/messages/retract') {
           // Retirada de mensaje de llamada
-          this.emit('spptze:player:mqtt:retract', topic, payload);
+          if (this.messageFilter.shouldForwardRetract(payload)) {
+            this.emit('spptze:player:mqtt:retract', topic, payload);
+          }
         } else {
           // Mensaje de llamada de turno
-          payload.deliveredAt = timestamp;
-          this.emit('spptze:player:mqtt:message', topic, payload); // a manejar en player.js
+          if (this.messageFilter.shouldForwardMessage(payload)) {
+            payload.deliveredAt = timestamp;
+            this.emit('spptze:player:mqtt:message', topic, payload); // a manejar en player.js
+          }
         }
       } else {
         throw new Error(`No handler for topic '${topic}'`);
@@ -272,7 +284,8 @@ class MQTTService extends EventEmitter {
       pubCount: this.publishCount,
       pubErrs: this.publishErrs,
       rcvCount: this.deliverCount,
-      rcvErrs: this.deliverErrs
+      rcvErrs: this.deliverErrs,
+      filter: this.messageFilter.getStats()
     };
   }
 

@@ -184,7 +184,10 @@ async function initializeServices() {
       console.log('Stopping services...');
 
       try {
-        if (mqttClient) await mqttClient.disconnect();
+        if (mqttClient) {
+          await mqttClient.disconnect();
+          mqttClient.destroy();
+        }
         if (socketServer) socketServer.close();
         process.exit(0);
       } catch (error) {
