@@ -454,7 +454,7 @@
         document.getElementById('FechaActual').innerHTML = ahora.toLocaleDateString('<%=localeString%>');
         document.getElementById('HoraActual').innerHTML = ahora.toLocaleTimeString().split(':').splice(0, 2).join(':');
 
-        eliminarItemsViejos(dt);
+        eliminarItemsViejos(ahora);
 
         // Actualizar los indicadores de avisos
         refreshWarns();
