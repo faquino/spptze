@@ -60,7 +60,9 @@ const getSerial = () => {
 };
 const serial = getSerial();
 
-//DONE: heartbeat al servidor central para informar que el nodo sigue activo
+// Devuelve una función que recopila información del servidor WebSocket y el control CEC para adjuntar
+// en el heartbeat al servidor central para informar que el nodo sigue activo. Dicha función se le pasa
+// al componente MQTTClient, que la invoca en cada heartbeat.
 const getHeartBeatInfoFun = (socketServer, cecControl) => {
   return () => {
     return { serialNumber: serial,
