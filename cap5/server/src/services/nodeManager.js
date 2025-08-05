@@ -99,8 +99,10 @@ class NodeManager {
     const deliveryInfo = { acknowledgedAt: new Date() };
     if (payload.deliveredAt) deliveryInfo.deliveredAt = new Date(payload.deliveredAt);
     if (payload.displayedAt) deliveryInfo.displayedAt = new Date(payload.displayedAt);
+    if (payload.retractedAt) deliveryInfo.retractedAt = new Date(payload.retractedAt);
     const delivery = await MessageDelivery.findOne({ where: { messageId: payload.id, nodeId: node.id } });
     if (!delivery) throw new Error(`Message delivery record not found for message ${payload.id} and node ${node.id}`);
+
     await delivery.update(deliveryInfo);
   }
 
