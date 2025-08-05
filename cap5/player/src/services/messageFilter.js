@@ -88,9 +88,9 @@ class MessageFilter {
     const normalizedID = payload.ogMessageId || payload.id;
     const currentCreatedAt = new Date(payload.createdAt);
 
-    // Comprobar no se haya recibido una retirada del mensaeje
-    if (this.isRetracted(normalizedID)) {
-      console.log(`Filter: Filtrando mensaje retirado ${messageId}`);
+    // Comprobar que no se haya recibido ya una retirada del mensaeje
+    if (this.isRetracted(messageId)) {
+      console.debug(`Filter: Filtrando mensaje retirado ${messageId}`);
       this.filteredMessageCount++;
       return false;
     }
@@ -126,7 +126,7 @@ class MessageFilter {
     const hasRelated = this.msgIdCache.has(ogMessageId || messageId);
 
     // Cachear retirada
-    this.cacheRetraction(ogMessageId || messageId);
+    this.cacheRetraction(messageId);
 
     if (hasRelated) {
 //      console.log(`Filter: Reenviando retirada ${messageId}`);
