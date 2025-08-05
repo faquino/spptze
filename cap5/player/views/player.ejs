@@ -396,6 +396,16 @@
         });
       }
 
+      function attrsLlamada(llamada) {
+        const attrs = {
+          'data-puerta': llamada.content,
+          'data-ticket': llamada.ticket,
+          'data-message-id': llamada.id
+        }
+        if (llamada.ogMessageId) attrs['data-og-message-id'] = llamada.ogMessageId;
+        return attrs;
+      }
+
       function ponerTicket($lista, llamada) {
         const ahora = Date.now();
         let $liTicket = $lista.find(`li[data-ticket='${llamada.ticket}']`);
@@ -410,11 +420,7 @@
           $liTicket = $lista.find('li.oculto').clone();
           $liTicket.find('.ticket').text(llamada.ticket);
           $liTicket.find('.puerta').text(llamada.content);
-          $liTicket.attr('data-puerta', llamada.content)
-                   .attr('data-ticket', llamada.ticket)
-                   .attr('data-message-id', llamada.id)
-                   .attr('data-og-message-id', llamada.ogMessageId)
-                   .removeClass('oculto');
+          $liTicket.attr(attrsLlamada(llamada)).removeClass('oculto');
         }
         $liTicket.attr('data-veces', replay ? (veces + 1) : 1)
                  .attr('data-ult-llamada', ahora)
