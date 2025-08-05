@@ -12,18 +12,18 @@
 
 /**
  * Aunque MQTT garantiza la entrega en el mismo orden de publicación para los mensajes de un mismo cliente en el msimo
- * topic, NO ES ASÍ entre topics o clientes diferentes. En el caso de SPPTZE, los mensajes de llamada y sus
- * repeticiones pueden publicarse en topics (destinos) diferentes, y los de retirada se publican siempre en un topic
- * distinto al del mensaje a retirar. Esto implica que pueden producirse entregas de mensajes fuera del orden de
- * publicación. La identificación de entregas fuera de orden y el filtrado evitan tener que manejar dichos casos en la
- * UI del nodo, como p.ej:
+ * topic, NO ES El CASO para los mensajes de topics o clientes diferentes. En el caso de SPPTZE, los mensajes de
+ * llamada y sus repeticiones pueden publicarse en topics (destinos) diferentes, y los de retirada se publican siempre
+ * en un topic distinto al del mensaje a retirar. Esto implica que pueden producirse entregas de mensajes fuera del
+ * orden de publicación. La identificación de entregas fuera de orden, como p.ej:
  * - Retirada antes que mensaje: se filtra el mensaje cuando llegue
  * - Repetición fuera de orden: se ignoran repeticiones con timestamp anterior
+ * Y su filtrado evitan tener que manejar dichos casos en la UI del nodo (y tráfico WebSocket)
  */
 class MessageFilter {
   constructor() {
-    this.retractCache = new Map();   // ogMessageId||messageId -> timestamp
-    this.msgIdCache = new Map();     // ogMessageId||messageId -> latestCreatedAt
+    this.retractCache = new Map();   // messageId -> timestamp
+    this.ogIdCache = new Map();      // ogMessageId||messageId -> latestCreatedAt
     this.cacheTtlMs = 5 * 60 * 1000; // 5 minutos TTL
     this.cleanupInterval = setInterval(() => { this.cleanup(); }, 60 * 1000); // Limpieza de caches cada minuto
 
@@ -33,7 +33,7 @@ class MessageFilter {
   }
 
   /**
-   * Limpiar entradas antiguas
+   * Eliminar entradas antiguas de las cachés
    */
   cleanup() {
     const ahora = Date.now();
@@ -47,13 +47,16 @@ class MessageFilter {
     
     // Limpiar mensajes antiguos (más de 15 minutos)
     const limiteTiempo = ahora - (15 * 60 * 1000);
-    for (const [id, createdAt] of this.msgIdCache) {
+    for (const [id, createdAt] of this.ogIdCache) {
       if (createdAt.getTime() < limiteTiempo) {
-        this.msgIdCache.delete(id);
+        this.ogIdCache.delete(id);
       }
     }
   }
 
+  /**
+   * Liberar recursos
+   */
   destroy() {
     if (this.cleanupInterval)
       clearInterval(this.cleanupInterval);
@@ -61,7 +64,7 @@ class MessageFilter {
 
   /**
    * Cachear retirada de mensaje
-   * @param {string} id - ogMessageId||messageId del mensaje retirado
+   * @param {string} id - messageId del mensaje retirado
    */
   cacheRetraction(id) {
     this.retractCache.set(id, Date.now());
@@ -69,7 +72,7 @@ class MessageFilter {
 
   /**
    * Comprobar si un mensaje está retirado
-   * @param {string} messageId - ogMessageId||messageId del mensaje a comprobar
+   * @param {string} messageId - messageId del mensaje a comprobar
    * @returns {boolean}
    */
   isRetracted(messageId) {
@@ -78,9 +81,11 @@ class MessageFilter {
   }
 
   /**
-   * Determinar si un mensaje debe reenviarse al frontend
+   * Determinar si un mensaje debe reenviarse al frontend o filtrarse si, p.ej.
+   * se ha recibido anteriormente una retirada (fuera de orden) de dicho mensaje o
+   * se ha recibido anteriormente una repetición más reciente (fuera de orden) de dicho mensaje
    * @param {Object} payload - Payload del mensaje MQTT
-   * @returns {boolean} - true si debe reenviarse, false si debe filtrarse
+   * @returns {boolean} - true si debe reenviarse, o false si debe filtrarse
    */
   shouldForwardMessage(payload) {
     const messageId = payload.id;
@@ -96,42 +101,43 @@ class MessageFilter {
     }
 
     // Comprobar que no sea una repetición fuera de orden
-    const cachedCreatedAt = this.msgIdCache.get(normalizedID);
+    const cachedCreatedAt = this.ogIdCache.get(normalizedID);
     if (cachedCreatedAt) {
       if (currentCreatedAt <= cachedCreatedAt) {
-        console.log('Filter: Filtrando repetición fuera de orden', 
+        console.debug('Filter: Filtrando repetición fuera de orden', 
                     `${messageId} (${currentCreatedAt.toISOString()} <= ${cachedCreatedAt.toISOString()})`);
         this.filteredMessageCount++;
         return false;
       } else {
-        console.log(`Filter: Aceptando repetición ${messageId} de ${ogMessageId}`);
-        this.msgIdCache.set(normalizedID, currentCreatedAt);
+        console.trace(`Filter: Reenviando repetición ${messageId} de ${ogMessageId}`);
+        this.ogIdCache.set(normalizedID, currentCreatedAt);
       }
     } else {
-      this.msgIdCache.set(normalizedID, currentCreatedAt);
+      this.ogIdCache.set(normalizedID, currentCreatedAt);
     }
 
     return true;
   }
 
   /**
-   * Determinar si una retirada debe reenviarse al frontend
+   * Determinar si una retirada debe reenviarse al frontend o ha de filtrarse si,
+   * p.ej. no ha llega todavía el mensaje a retirar
    * @param {Object} payload - Payload de la retirada MQTT
-   * @returns {boolean} - true si debe reenviarse
+   * @returns {boolean} - true si debe reenviarse, o false si debe filtrarse
    */
   shouldForwardRetract(payload) {
     const messageId = payload.retract;
     const ogMessageId = payload.ogMessageId;
     // Determinar si en la cache de og_ids hay algún mensaje relacionado con éste
-    const hasRelated = this.msgIdCache.has(ogMessageId || messageId);
+    const hasRelated = this.ogIdCache.has(ogMessageId || messageId);
 
     // Cachear retirada
     this.cacheRetraction(messageId);
 
     if (hasRelated) {
-//      console.log(`Filter: Reenviando retirada ${messageId}`);
+      console.trace(`Filter: Reenviando retirada ${messageId}`);
     } else {
-      console.log(`Filter: Filtrando retirada ${messageId}`);
+      console.debug(`Filter: Filtrando retirada ${messageId}`);
       this.filteredRetractCount++;
     }
     return hasRelated;
@@ -144,9 +150,11 @@ class MessageFilter {
   getStats() {
     this.cleanup();
     return {
-      retiradosEnCache: this.retractCache.size,
-      versionesRegistradas: this.msgIdCache.size,
-      cacheTimeout: this.cacheTtlMs
+      retractCacheSize: this.retractCache.size,
+      msgIdCacheSize: this.ogIdCache.size,
+      cacheTimeout: this.cacheTtlMs,
+      filteredMessages: this.filteredMessageCount,
+      filteredRetracts: this.filteredRetractCount
     };
   }
 
