@@ -228,9 +228,11 @@ class MQTTService extends EventEmitter {
     // además del campo lastSeen en DisplayNode
     console.log(`MQTT: ACK from ${payload.nodeId}`);
   
-    // Emitir evento para actualizar MessageDelivery
+    // El id de mensaje en las retiradas ve en el atributo retract
+    if (payload.retract) payload.id = payload.retract;
+
+    // Actualizar MessageDelivery
     await nodeManager.messageAck(payload);
-//    this.emit('messageAck', { nodeId, ...payload });
   }
 
   /**

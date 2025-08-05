@@ -153,6 +153,9 @@ async function initializeServices() {
         if (payload.displayedAt) {
           console.log(`Publishing ACK for message ${payload.id}`);
           mqttClient.publishAck(payload);
+        } else if (payload.retractedAt) {
+          console.log(`Publishing ACK for retraction ${payload.retractedAt}`)
+          mqttClient.publishAck(payload);
         }
       });
     });

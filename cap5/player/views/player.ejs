@@ -400,9 +400,9 @@
         const attrs = {
           'data-puerta': llamada.content,
           'data-ticket': llamada.ticket,
-          'data-message-id': llamada.id
-        }
-        if (llamada.ogMessageId) attrs['data-og-message-id'] = llamada.ogMessageId;
+          'data-message-id': llamada.id,
+          'data-og-message-id': llamada.ogMessageId || llamada.id
+        };
         return attrs;
       }
 
@@ -413,16 +413,18 @@
         let replay = false;
         if ($liTicket.length > 0) {
           const puertaAnterior = $liTicket.find('.puerta').text();
-          $liTicket.detach().removeClass('show').find('.puerta').text(llamada.content);
+          $liTicket.detach().removeClass('show');
+          $liTicket.find('.puerta').text(llamada.content);
           veces = parseInt($liTicket.attr('data-veces'));
           replay = (puertaAnterior == llamada.content);
         } else {
           $liTicket = $lista.find('li.oculto').clone();
           $liTicket.find('.ticket').text(llamada.ticket);
           $liTicket.find('.puerta').text(llamada.content);
-          $liTicket.attr(attrsLlamada(llamada)).removeClass('oculto');
+          $liTicket.removeClass('oculto');
         }
-        $liTicket.attr('data-veces', replay ? (veces + 1) : 1)
+        $liTicket.attr(attrsLlamada(llamada))
+                 .attr('data-veces', replay ? (veces + 1) : 1)
                  .attr('data-ult-llamada', ahora)
                  .toggleClass('replay', replay);
         const $previo = $lista.find('li:not(.oculto):first');
@@ -441,6 +443,20 @@
           llamada.displayedAt = ahora;
           datos.ws.send(JSON.stringify(llamada));
         }, 0);
+      }
+
+      function retirarTicket($lista, retirada) {
+        const ahora = Date.now();
+        let $liTicket = $lista.find(`li[data-og-message-id='${retirada.ogMessageId || retirada.retract}']`);
+        if ($liTicket.length > 0) {
+          $liTicket.addClass('retirada');
+          setTimeout(function () {
+            $liTicket.remove();
+            delete retirada.deliveredAt;
+            retirada.retractedAt = ahora;
+            datos.ws.send(JSON.stringify(retirada));
+          }, 0);
+        }
       }
 
       function eliminarItemsViejos(timestamp) {
@@ -476,18 +492,20 @@
 
       function procesaMensaje(message) {
         datos.llamando = true;
-        ponerTicket(datos.$llamadas, message);
-
-        // ---- reproducir aviso y/o mensaje de voz
+        if (message.retract) {
+          retirarTicket(datos.$llamadas, message);
+        } else {
+          ponerTicket(datos.$llamadas, message);
+        }
+        // ---- reproducir avisos y/o mensaje de voz
         const playList = initPlayList();
         if (message.audio && message.audio.audioB64) {
           playList.push({audioB64: message.audio.audioB64, audioMIME: message.audio.audioMIME});
         }
         playAudio(playList).then(function (result) {
           if (datos.pendientes.length > 0) {
-            setTimeout(function () {
-              const msg = datos.pendientes.shift();
-              procesaMensaje(msg);
+            setTimeout(() => {
+              procesaMensaje(datos.pendientes.shift());
             }, 50);
           } else {
             datos.llamando = false;
@@ -544,7 +562,7 @@
         // Manejador de evento WebSocket (mensaje recibido)
         datos.ws.onmessage = (event) => {
           const message = JSON.parse(event.data);
-          if (message.ticket && message.content) { // ¿Es un mensaje de llamada?
+          if ((message.ticket && message.content) || message.retract) { // ¿Mensaje de llamada o retirada?
             console.log(`(WebSocket) Mensaje recibido: ${message.ticket}`);
             if (!datos.llamando) {
               // Si no se está procesando ya otro mensaje, procesar éste inmediatamente
@@ -553,10 +571,8 @@
               // Encolar
               datos.pendientes.push(message);
             }
-          } else if (message.retract) {
-
           } else {
-
+            // :-(
           }
         };
 
