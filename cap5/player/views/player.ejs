@@ -450,12 +450,15 @@
         let $liTicket = $lista.find(`li[data-og-message-id='${retirada.ogMessageId || retirada.retract}']`);
         if ($liTicket.length > 0) {
           $liTicket.addClass('retirada');
-          setTimeout(function () {
-            $liTicket.remove();
-            delete retirada.deliveredAt;
-            retirada.retractedAt = ahora;
-            datos.ws.send(JSON.stringify(retirada));
-          }, 0);
+          setTimeout( () => {
+            $liTicket.removeClass('show');
+            setTimeout(() => {
+              $liTicket.remove();
+              delete retirada.deliveredAt;
+              retirada.retractedAt = ahora;
+              datos.ws.send(JSON.stringify(retirada));
+            }, 250);
+          }, 250);
         }
       }
 
