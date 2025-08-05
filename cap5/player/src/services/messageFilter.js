@@ -95,7 +95,7 @@ class MessageFilter {
 
     // Comprobar que no se haya recibido ya una retirada del mensaeje
     if (this.isRetracted(messageId)) {
-      console.debug(`Filter: Filtrando mensaje retirado ${messageId}`);
+      console.log(`Filter: Filtrando mensaje retirado ${messageId}`);
       this.filteredMessageCount++;
       return false;
     }
@@ -104,12 +104,12 @@ class MessageFilter {
     const cachedCreatedAt = this.ogIdCache.get(normalizedID);
     if (cachedCreatedAt) {
       if (currentCreatedAt <= cachedCreatedAt) {
-        console.debug('Filter: Filtrando repetición fuera de orden', 
+        console.log('Filter: Filtrando repetición fuera de orden', 
                     `${messageId} (${currentCreatedAt.toISOString()} <= ${cachedCreatedAt.toISOString()})`);
         this.filteredMessageCount++;
         return false;
       } else {
-        console.trace(`Filter: Reenviando repetición ${messageId} de ${ogMessageId}`);
+        console.log(`Filter: Reenviando repetición ${messageId} de ${ogMessageId}`);
         this.ogIdCache.set(normalizedID, currentCreatedAt);
       }
     } else {
@@ -135,9 +135,9 @@ class MessageFilter {
     this.cacheRetraction(messageId);
 
     if (hasRelated) {
-      console.trace(`Filter: Reenviando retirada ${messageId}`);
+      console.log(`Filter: Reenviando retirada ${messageId}`);
     } else {
-      console.debug(`Filter: Filtrando retirada ${messageId}`);
+      console.log(`Filter: Filtrando retirada ${messageId}`);
       this.filteredRetractCount++;
     }
     return hasRelated;
