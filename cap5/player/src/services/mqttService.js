@@ -239,16 +239,25 @@ class MQTTService extends EventEmitter {
           this.emit('spptze:player:mqtt:control', topic, payload); // a manejar en player.js
         }
       } else if (topic.startsWith('spptze/messages/')) {
+        payload.deliveredAt = timestamp;
         if (topic == 'spptze/messages/retract') {
-          // Retirada de mensaje de llamada
           if (this.messageFilter.shouldForwardRetract(payload)) {
             this.emit('spptze:player:mqtt:retract', topic, payload);
+          } else {
+            //(1) Retirada de mensaje de llamada, filtrada porque el mensaje a retirar todavía no ha llegado. Se envía
+            //el ACK igualmente. Cuando el mensaje a retirar llegue más tarde, también será filtrado, caso que se maneja
+            //en (2)
+            payload.retractedAt = timestamp;
+            this.publishAck(payload);
           }
         } else {
           // Mensaje de llamada de turno
           if (this.messageFilter.shouldForwardMessage(payload)) {
-            payload.deliveredAt = timestamp;
             this.emit('spptze:player:mqtt:message', topic, payload); // a manejar en player.js
+          } else {
+            //(2) Mensaje de llamada filtrado. Puede deberse a un mensaje de retirada o un mensaje que se repite, en ambos
+            //casos entregados fuera de orden.
+            this.publishAck(payload);
           }
         }
       } else {
