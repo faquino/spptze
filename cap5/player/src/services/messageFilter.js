@@ -122,6 +122,7 @@ class MessageFilter {
   shouldForwardRetract(payload) {
     const messageId = payload.retract;
     const ogMessageId = payload.ogMessageId;
+    // Determinar si en la cache de og_ids hay algún mensaje relacionado con éste
     const hasRelated = this.msgIdCache.has(ogMessageId || messageId);
 
     // Cachear retirada
