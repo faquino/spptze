@@ -223,7 +223,7 @@ class MQTTService extends EventEmitter {
 
 
   /**
-   * Manejar mensajes MQTT recibidos
+   * Manejar mensajes entregados por el bróker MQTT
    */
   async handleMessage(topic, message, timestamp) {
     this.deliverCount++;
@@ -235,8 +235,8 @@ class MQTTService extends EventEmitter {
           // Mensaje del servidor informando de las suscripciones necesarias 
           await this.handleMessageSubs(payload);
         } else if (payload.volumeLevel !== undefined || payload.powerStatus) {
-          // Mensaje para el control de la pantalla
-          this.emit('spptze:player:mqtt:control', topic, payload); // a manejar en player.js
+          // Mensaje para el control de la pantalla, a manejar en player.js
+          this.emit('spptze:player:mqtt:control', topic, payload);
         }
       } else if (topic.startsWith('spptze/messages/')) {
         payload.deliveredAt = timestamp;
@@ -244,19 +244,19 @@ class MQTTService extends EventEmitter {
           if (this.messageFilter.shouldForwardRetract(payload)) {
             this.emit('spptze:player:mqtt:retract', topic, payload);
           } else {
-            //(1) Retirada de mensaje de llamada, filtrada porque el mensaje a retirar todavía no ha llegado. Se envía
-            //el ACK igualmente. Cuando el mensaje a retirar llegue más tarde, también será filtrado, caso que se maneja
-            //en (2)
+            //(1) Mensaje de retirada filtrado porque el mensaje a retirar todavía no
+            //ha llegado. Se envía el ACK inmediatamente. Cuando llegue el mensaje a
+            //retirar, también será filtrado, caso que se maneja en (2)
             payload.retractedAt = timestamp;
             this.publishAck(payload);
           }
         } else {
           // Mensaje de llamada de turno
           if (this.messageFilter.shouldForwardMessage(payload)) {
-            this.emit('spptze:player:mqtt:message', topic, payload); // a manejar en player.js
+            this.emit('spptze:player:mqtt:message', topic, payload);
           } else {
-            //(2) Mensaje de llamada filtrado. Puede deberse a un mensaje de retirada o un mensaje que se repite, en ambos
-            //casos entregados fuera de orden.
+            //(2) Mensaje de llamada filtrado. Puede deberse a un mensaje de retirada o
+            //una repetición, en ambos casos entregados fuera de orden.
             this.publishAck(payload);
           }
         }
