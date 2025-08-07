@@ -252,12 +252,12 @@ class MQTTService extends EventEmitter {
           }
         } else {
           // Mensaje de llamada de turno
-          if (this.messageFilter.shouldForwardMessage(payload)) {
-            this.emit('spptze:player:mqtt:message', topic, payload);
-          } else {
+          const filterResult = this.messageFilter.shouldForwardMessage(payload);
+          if (filterResult.fwd) this.emit('spptze:player:mqtt:message', topic, payload);
+          else {
             //(2) Mensaje de llamada filtrado. Puede deberse a un mensaje de retirada o
             //una repetición, en ambos casos entregados fuera de orden.
-            this.publishAck(payload);
+            if (filterResult.ack) this.publishAck(payload);
           }
         }
       } else {

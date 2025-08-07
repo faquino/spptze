@@ -23,6 +23,7 @@
 class MessageFilter {
   constructor() {
     this.retractCache = new Map();   // messageId -> timestamp
+    // Se normaliza un mensaje y todas sus repeticiones en la misma entrada de caché
     this.ogIdCache = new Map();      // ogMessageId||messageId -> latestCreatedAt
     this.cacheTtlMs = 5 * 60 * 1000; // 5 minutos TTL
     this.cleanupInterval = setInterval(() => { this.cleanup(); }, 60 * 1000); // Limpieza de caches cada minuto
@@ -81,42 +82,44 @@ class MessageFilter {
   }
 
   /**
-   * Determinar si un mensaje debe reenviarse al frontend o filtrarse si, p.ej.
-   * se ha recibido anteriormente una retirada (fuera de orden) de dicho mensaje o
-   * se ha recibido anteriormente una repetición más reciente (fuera de orden) de dicho mensaje
+   * Determinar si un mensaje debe reenviarse al frontend o filtrarse si, p.ej. se ha
+   * recibido anteriormente una retirada (fuera de orden) de dicho mensaje o se ha
+   * recibido anteriormente una repetición más reciente (fuera de orden) de dicho mensaje
    * @param {Object} payload - Payload del mensaje MQTT
-   * @returns {boolean} - true si debe reenviarse, o false si debe filtrarse
+   * @returns {Object} - { fwd: true si debe reenviarse, o false si debe filtrarse,
+   *                       ack: true si debe enviarse ack, o false en caso contrario }
    */
   shouldForwardMessage(payload) {
     const messageId = payload.id;
     const ogMessageId = payload.ogMessageId;
+    // Normalizar ID (ver definición de this.ogIdCache)
     const normalizedID = payload.ogMessageId || payload.id;
-    const currentCreatedAt = new Date(payload.createdAt);
+    const payloadCreatedAt = new Date(payload.createdAt);
 
     // Comprobar que no se haya recibido ya una retirada del mensaeje
     if (this.isRetracted(messageId)) {
       console.log(`Filter: Filtrando mensaje retirado ${messageId}`);
       this.filteredMessageCount++;
-      return false;
+      return { fwd: false, ack: false };
     }
 
     // Comprobar que no sea una repetición fuera de orden
     const cachedCreatedAt = this.ogIdCache.get(normalizedID);
     if (cachedCreatedAt) {
-      if (currentCreatedAt <= cachedCreatedAt) {
+      if (payloadCreatedAt <= cachedCreatedAt) {
         console.log('Filter: Filtrando repetición fuera de orden', 
-                    `${messageId} (${currentCreatedAt.toISOString()} <= ${cachedCreatedAt.toISOString()})`);
+                    `${messageId} (${payloadCreatedAt.toISOString()} <= ${cachedCreatedAt.toISOString()})`);
         this.filteredMessageCount++;
-        return false;
+        return { fwd: false, ack: true };
       } else {
         console.log(`Filter: Reenviando repetición ${messageId} de ${ogMessageId}`);
-        this.ogIdCache.set(normalizedID, currentCreatedAt);
+        this.ogIdCache.set(normalizedID, payloadCreatedAt);
       }
     } else {
-      this.ogIdCache.set(normalizedID, currentCreatedAt);
+      this.ogIdCache.set(normalizedID, payloadCreatedAt);
     }
 
-    return true;
+    return { fwd: true };
   }
 
   /**
