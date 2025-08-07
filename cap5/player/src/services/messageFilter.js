@@ -120,18 +120,18 @@ class MessageFilter {
   }
 
   /**
-   * Determinar si una retirada debe reenviarse al frontend o ha de filtrarse si,
-   * p.ej. no ha llega todavía el mensaje a retirar
+   * Determinar si una retirada debe reenviarse al frontend web o ha de filtrarse
+   * si, p.ej. no ha llega todavía el mensaje a retirar
    * @param {Object} payload - Payload de la retirada MQTT
    * @returns {boolean} - true si debe reenviarse, o false si debe filtrarse
    */
   shouldForwardRetract(payload) {
     const messageId = payload.retract;
     const ogMessageId = payload.ogMessageId;
-    // Determinar si en la cache de og_ids hay algún mensaje relacionado con éste
+    // Determinar si en la cache de og_ids hay algún mensaje relacionado con este
     const hasRelated = this.ogIdCache.has(ogMessageId || messageId);
 
-    // Cachear retirada
+    // Cachear id del mensaje a retirar
     this.cacheRetraction(messageId);
 
     if (hasRelated) {
