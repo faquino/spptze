@@ -449,14 +449,14 @@
         const ahora = Date.now();
         let $liTicket = $lista.find(`li[data-og-message-id='${retirada.ogMessageId || retirada.retract}']`);
         if ($liTicket.length > 0) {
+          delete retirada.deliveredAt;
+          retirada.retractedAt = ahora;
+          datos.ws.send(JSON.stringify(retirada));
           $liTicket.addClass('retirada');
           setTimeout( () => {
             $liTicket.removeClass('show');
             setTimeout(() => {
               $liTicket.remove();
-              delete retirada.deliveredAt;
-              retirada.retractedAt = ahora;
-              datos.ws.send(JSON.stringify(retirada));
             }, 250);
           }, 250);
         }
@@ -493,6 +493,7 @@
         return playList;
       }
 
+      //TODO BUG hay un problema en el manejo de repeticiones cuando no hay audio
       function procesaMensaje(message) {
         datos.llamando = true;
         if (message.retract) {
