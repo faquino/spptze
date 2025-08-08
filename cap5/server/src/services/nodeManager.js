@@ -156,6 +156,13 @@ class NodeManager {
     });
   }
 
+  /**
+   * Recuperar un nodo de la base de datos por su número de serie.
+   * NO USAR SI NO SE PRETENDE ACTUALIZAR EL CAMPO LAST_SEEN.
+   * @param {string} serial - Número de serie del nodo a recuperar de BD
+   * @returns Object - Instancia de modelo DisplayNode correspondiente al número de
+   *                   serie facilitado
+   */
   async getNodeBySN(serial) {
     const displayNode = await DisplayNode.findOne({ where: { serialNumber: serial } });
     if (!displayNode) {

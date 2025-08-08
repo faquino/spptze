@@ -216,8 +216,8 @@ class MQTTService extends EventEmitter {
       await nodeManager.getNodeBySN(payload.serialNumber);
     else
       throw new Error('No valid serial in heartbeat message');
-    //TODO: Simplemente se refresca lastSeen del nodo en cuestión, pero el heartbeat podría proporcionar más info
-    //      sobre el nodo
+    //TODO: Simplemente se refresca lastSeen del nodo en cuestión, aunque el heartbeat 
+    // proporciona mucha más info sobre el nodo
   }
 
   /**

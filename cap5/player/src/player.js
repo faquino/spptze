@@ -66,6 +66,7 @@ const serial = getSerial();
 const getHeartBeatInfoFun = (socketServer, cecControl) => {
   return () => {
     return { serialNumber: serial,
+             systemInfo: getSystemInfo(),
              socketClients: socketServer.clients.size,
              cecStatus: cecControl.getStatus() };
   };
