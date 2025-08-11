@@ -1,32 +1,40 @@
 # SPPTZE
 Sistema de Presentación para Pantallas de Turno en Zonas de Espera
 
-## Capítulo 5 - Iteraciones 3 y 4: Funcionalidads básicas
-Código resultante de las iteraciones 3 y 4 del desarrollo del sistema según la planificación inicial establecida en la memoria de trabajo
+## Capítulo 5 - Iteraciones 3 y 4: Funcionalidads básicas y control CEC
+Código resultante de las iteraciones 3 y 4 del desarrollo del sistema según la planificación establecida en el apartado 3.4 de la memoria de trabajo
 
-## Prototipo funcional del servidor central
-Integra la API REST y el acceso a datos usando Sequelize ORM. Implementa el modelo de datos completo y permite validar los casos de uso principales del sistema.
+## Versión funcional del servidor central
+Integra la API REST completa y el acceso a datos usando Sequelize ORM. Implementa el modelo de datos completo y permite validar los casos de uso principales del sistema. Implementa la distrución vía MQTT de mensajes de llamada de turno y gestión de pantallas dirigidos a los nodos de visualización.
 
 ### Estructura del proyecto
 ```
 server/
 ├── src/
 │   ├── config/
-│   │   └── database.js         # Configuración BD según entorno (.env)
+│   │   ├── database.js           # Configuración de acceso a la BD según entorno (.env)
+│   │   └── swagger.js            # Esquemas OpenAPI/Swagger y configuración de API
+│   ├── controllers/              # Controladores (implementan la lógica de las rutas de la API)
+│   ├── middleware/               # Procesamiento común en todas las peticiones de rutas API
 │   ├── models/
-│   │   ├── index.js            # Inicialización modelos + utilidades
-│   │   └── definitions.js      # Definiciones Sequelize (copiado de orm/)
+│   │   ├── index.js              # Inicialización modelos + utilidades
+│   │   └── definitions.js        # Definiciones Sequelize (copiado de orm/)
+│   ├── routes/                   # Declaraciondes de rutas API y asignación de controllers
 │   ├── scripts/
-│   │   ├── seed.js             # Setup BD + datos de ejemplo
-│   │   └── test-integration.js # Pruebas integración API + BD
-│   └── server.js               # Servidor principal
-├── package.json            # Dependencias + scripts
-└── .env-sample             # Plantilla de archivo .env para la configuración de entorno
+│   │   ├── generate-data-dict.js # Genera diccionario de datos a partir de src/models/definitions.js
+│   │   ├── install-db-driver.js  # Instala dependencias de base de datos específicas según variable ORM_DIALECT
+│   │   ├── seed.js               # Setup BD + datos de ejemplo
+│   │   └── test-integration.js   # Pruebas integración API + BD
+│   ├── services/                 # Relacionados con distribución MQTT y empleados por los controllers
+│   ├── utils/                    # Funciones de utilidad
+│   └── server.js                 # Servidor principal
+├── package.json                  # Dependencias + scripts
+└── .env-sample                   # Plantilla de archivo .env para la configuración de entorno
 ```
 
 ## Requisitos
 - Node.js >= 22.0.0
-- PostgreSQL / SQLite
+- PostgreSQL / SQLite u otro RDBMS soportado por Sequelize
 - Bróker MQTT (Eclipse Mosquitto, HiveMQ etc)
 
 Se incluye un *stack* mínimo para iniciar un gestor de base de datos (PostgreSQL) y un bróker MQTT (Eclipse Mosquitto) mediante Docker Compose en el archivo `stack_pg_em.yml`, que emplea las mismas variables de entorno (fichero `.env`) que la aplicación. Iniciar con:
@@ -71,7 +79,8 @@ Se incluye un *stack* mínimo para iniciar un gestor de base de datos (PostgreSQ
 - `npm start` - Inicia servidor (preserva datos existentes)
 - `npm run dev` - Inicia servidor con nodemon para desarrollo
 - `npm run seed` - Crea el esquema de base de datos con datos de ejemplo. ⚠️**Elimina el contenido existente en la base de datos**⚠️.
-- `npm run db:install-driver` - Instala los drivers de base de datos según ORM_DIALECT (no se incluyen dependencias de drivers en `package.json`)
+- `npm run db:install-driver` - Instala los drivers de base de datos según ORM_DIALECT (`package.json` no incluye dependencias de drivers específicos)
+- `npm run db:generate-data-dict` - Genera el diccionario de datos `DATA_DICTIONARY.md` a partir de los modelos Sequelize
 - `npm test` - Ejecuta pruebas de integración
 
 ## Endpoints principales
@@ -79,8 +88,6 @@ Se incluye un *stack* mínimo para iniciar un gestor de base de datos (PostgreSQ
 - **Documentación API (SwaggerUI)**: /api/v1/docs
 - **Display demo**: /display
 - **Admin Panel demo**: /admin
-
-## Ejemplos de uso
 
 ### API Keys de demo
 - Hospital: `demo-key-hospital-123`
@@ -113,4 +120,4 @@ curl -H "X-API-Key: demo-key-admin-456" \
 - **Cliente MQTT**: mqtt.js
 
 ## Notas
-- La BD se reinicializa solo con `npm run seed`; se preservan los datos existentes al iniciarse mediante `npm start`
+- La BD se reinicializa solo con `npm run seed`; los demás scripts preservan los datos existentes
