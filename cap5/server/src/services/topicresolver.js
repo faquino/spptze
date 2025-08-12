@@ -42,31 +42,6 @@ class TopicResolver {
   }
 
   /**
-   * Calcula el conjunto de suscripciones MQTT para un nodo en función de sus ubicaciones asociadas
-   * @param {string} nodeId - ID del nodo de visualización
-   * @returns {Promise<string[]>} Lista de topics MQTT a los que suscribirse
-   */
-  async getNodeSubscriptions(nodeId) {
-    const node = await DisplayNode.findByPk(nodeId, {
-      include: [Location]
-    });
-    
-    if (!node) throw new Error(`Node ${nodeId} not found`);
-    
-    const subscriptions = [];
-    for (const location of node.Locations) {
-      const path = await location.getPath();
-      const pathStr = path.map(loc => loc.id).join('/');
-      
-      // Si showChildren=true, suscribirse a hijos también
-      const suffix = location.NodeLocationMapping?.showChildren ? '/#' : '';
-      subscriptions.push(`${this.#prefix}/messages/loc/${pathStr}${suffix}`);
-    }
-    
-    return subscriptions;
-  }
-
-  /**
    * Obtener nodos que deben recibir un mensaje
    * @param {Object} message - Instancia del modelo Message
    * @returns {Promise<Array>} Array de instancias DisplayNode
