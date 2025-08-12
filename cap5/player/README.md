@@ -61,6 +61,6 @@ player/
 - `npm run dev` - Inicia servidor con nodemon para desarrollo
 
 ## Arquitectura
-- **API REST**: Express.js + OpenAPI
 - **Cliente MQTT**: mqtt.js
+- **WebSocket:** paquete npm websockets/ws en servidor local del nodo; API WebSocket en el navegador
 - **Control CEC**: `cec-ctl` (en el paquete `v4l-utils` en distribuciones Debian)

@@ -20,11 +20,12 @@ Código resultante de las iteraciones 3 y 4 en el desarrollo del sistema según 
 ## Estructura de carpetas
 ```
 cap5/
-├── player/       # Nodo de visualización con MQTT
-└── server/       # Servidor central con MQTT
+├── player/    # Nodo de visualización con MQTT y control CEC
+└── server/    # Servidor central con MQTT
 ```
 
 ## Tecnologías validadas
 - **MQTT:** mqtt.js
+- **WebSocket:**
 - **HDMI-CEC** *Con matices
 
