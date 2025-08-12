@@ -2,7 +2,8 @@
 Sistema de Presentación para Pantallas de Turno en Zonas de Espera
 
 ## Capítulo 6 - Iteraciones 5, 6 y 7: Funcionalidades avanzadas
-Código resultante de las iteraciones 5, 6 y 7 en el desarrollo del sistema según la planificación inicial establecida en la memoria de trabajo. Sistema funcional de visualización con distribución MQTT y control CEC de dispositivos, con capacidades de presentación multimodal y administrable y configurable vía web.
+Código resultante de las iteraciones 5, 6 y 7 en el desarrollo del sistema según la planificación inicial establecida en la memoria de trabajo.
+Sistema funcional de visualización con distribución MQTT y control CEC de dispositivos, con capacidades de presentación multimodal y administrable y configurable vía web.
 
 ### Iteración 5: Presentación multimodal
 
@@ -17,7 +18,7 @@ Código resultante de las iteraciones 5, 6 y 7 en el desarrollo del sistema seg�
 ## Estructura de carpetas
 ```
 cap6/
-├── player/       # Nodo de visualización con MQTT
+├── player/       # Nodo de visualización con MQTT y control CEC
 └── server/       # Servidor central con MQTT
 ```
 

@@ -1,0 +1,590 @@
+﻿<!DOCTYPE html>
+<!--
+  * SPPTZE - Sistema de Presentación para Pantallas de Turno en Zonas de Espera
+  * TFE Grado en Ingeniería Informática - Universidad Internacional de La Rioja
+  * Copyright (c) 2025 Francisco José Aquino García
+  * Licensed under the MIT License - see LICENSE file for details -->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="description" content="SPPTZE - Sistema de presentación para pantallas de turno en zonas de espera">
+    <meta name="author" content="Francisco José Aquino García">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SPPTZE-player - Presentación de llamadas de turno</title>
+    <link rel="icon" type="image/x-icon" href="/web/favicon.ico">
+    <link rel="stylesheet" href="/web/3p/fontawesome/css/fontawesome.min.css">
+    <link rel="stylesheet" href="/web/3p/fontawesome/css/solid.min.css">
+    <style type="text/css">
+      :root {
+        --fondo-cuerpo: #2a2b6c; /* Un azul cobalto */
+        --fondo-llamada-impar: #36366a; /* una variación de fondo-cuerpo */
+        --ultima-llamada: #ff8100; /* un naranja intenso */
+        --color-llamada: white;
+        --color-retirada: #AAA;
+        --color-texto-cartel: orange;
+        --altura-fila: 135px;
+      }
+      body {
+        font-family: 'Helvetica', sans-serif;
+        position: absolute;
+        margin: 0; border: 0; padding: 0;
+        top: 0; left: 0; bottom: 0; right: 50%;
+        display: flex;
+        flex-flow: column;
+        justify-content: space-between;
+        background-color: var(--fondo-cuerpo);
+      }
+      header, footer {
+        z-index: 10;
+        position: absolute;
+        width: 100%;
+        height: var(--altura-fila);
+        background-color: white;
+        box-shadow: black 0px 0px 10px;
+      }
+      header {
+        border-radius: 0 0 32px 0;
+      }
+      header div.flex-item {
+        text-align: start;
+      }
+      header img.logoOrg {
+        padding: 8px;
+        height: calc(100% - 16px);
+      }
+      main {
+        color: white;
+        position: absolute;
+        left: 100%;
+        width: 100%;
+        top: 0;
+      }
+      footer {
+        bottom: 0;
+        border-radius: 0 32px 0 0;
+        font-size: smaller;
+      }
+      .oculto {
+        display: none;
+      }
+      .flex-Hcontainer {
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+      }
+      .flex-Vcontainer {
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 5;
+      }
+      .flex-tocho {
+        width: 100%;
+        height: 100%;
+        line-height: 100px;
+        font-size: 2em;
+        text-align: center;
+        display: flex;
+      }
+      .flex-item {
+        width: 100%;
+        line-height: var(--altura-fila);
+        font-size: 3.5em;
+        text-align: center;
+      }
+      .flex-grow {
+        flex-grow: 1;
+      }
+      .promo {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+      .promo .imgfondo {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        /*
+        background-image: url(/web/imgFondo.jpg);
+        */
+        background-size: cover;
+        box-shadow: inset 0 0 20px 20px var(--fondo-cuerpo);
+        opacity: 0.15;
+        z-index: -1;
+      }
+      .promo .cartel {
+        padding: 0 30px;
+        font-size: 9.5em;
+        line-height: 0.9em;
+        color: var(--color-texto-cartel);
+        text-align: center;
+        text-shadow: 5px 5px 10px #313131;
+      }
+      .llamadas {
+        font-size: larger;
+        overflow: hidden;
+        font-weight: bold;
+      }
+      .llamadas li {
+        opacity: 0;
+        transform: rotateX(-90deg);
+        transition: transform 0.5s cubic-bezier(0.36, -0.64, 0.34, 1.76);
+        color: var(--color-llamada);
+        border-radius: 32px 0 0 32px;
+      }
+      .llamadas li.show {
+        opacity: 1;
+        transform: none;
+        transition: transform 0.5s cubic-bezier(0.36, -0.64, 0.34, 1.76),
+                    color 1s ease,
+                    font-size 1s;
+      }
+      .llamadas li.show:first-child, .llamadas li.show.reciente {
+        font-size: larger;
+        color: var(--ultima-llamada);
+      }
+      .llamadas li.show:nth-child(odd) {
+        background-color: var(--fondo-llamada-impar);
+      }
+      .llamadas li.retirada {
+        text-decoration: line-through;
+        opacity: 0.6;
+        transition: opacity 0.5s ease;
+      }
+      .llamadas li.retirada .ticket,
+      .llamadas li.retirada .puerta {
+        color: var(--color-retirada);
+      }
+/*  Caracterización visual de llamadas repetidas
+    .llamadas li.show.replay div.replay {
+      background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAGCAYAAAAL+1RLAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAhSURBVBhXY2D4jwbBAM6AAjAfpyAyRMhAAVZBEPjP8B8AmFYf4SBvFTkAAAAASUVORK5CYII=);
+      background-position: top right;
+      background-repeat: no-repeat;
+      background-blend-mode: overlay;
+    }
+*/
+      footer .warns {
+        visibility: hidden;
+        position: absolute;
+        margin: 0;
+        padding: 0;
+        width: 32px;
+        bottom: 0;
+        left: 0;
+        background-color: transparent;
+        list-style-type: none;
+        font-size: large;
+      }
+      .warns.no_autoPlay, .warns.no_webSocket  {
+        visibility: visible;
+        color: grey;
+      }
+      .warns .warnItem {
+        opacity: 0.1;
+      }
+      .warns.no_autoPlay .warnItem.no_autoPlay,
+      .warns.no_webSocket .warnItem.no_webSocket {
+        opacity: 1;
+        color: red;
+      }
+      footer .statusInfo {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        margin: 0;
+        padding: 1px 4px;
+        opacity: 0.25;
+        font-size: x-small;
+      }
+      footer time {
+        color: var(--fondo-cuerpo);
+      }
+      footer div i {
+        color: #7b7c9f;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="flex-Hcontainer">
+      <div class="flex-item"><img class="logoOrg" src="/web/logoOrg.svg"></div>
+    </header>
+
+    <section class="flex-Hcontainer flex-grow cuerpo">
+      <aside class="promo">
+        <!--
+          <video width="100%" style="display: block; margin: auto 0;" controls autoplay loop muted>
+            <source src="video.mp4" type="video/mp4">
+          </video>
+        -->
+        <div class="imgfondo"></div>
+        <div class="cartel"></div>
+        <!--
+          Las frases en .frases ser irán rotando en .cartel
+          TODO: Mecanismo para obtener las frases u otros contenidos a mostrar -->
+        <ul style="display:none" class="frases">
+          <li>Por favor, permanezca a la espera de su turno</li>
+          <li>Recuerde mantener la distancia interpersonal de seguridad</li>
+          <li>Si tiene alguna duda, no dude en consultar a nuestro personal</li>
+        </ul>
+      </aside>
+
+      <main class="flex-tocho flex-Vcontainer">
+        <div class="flex-Hcontainer cabTickets">
+          <span class="flex-item ticket">Tique</span>
+          <span class="flex-item puerta">Sala</span>
+        </div>
+        <ul class="flex-Vcontainer llamadas">
+          <li class="flex-Hcontainer oculto" data-veces="0">
+            <span class="flex-item ticket"></span><span class="flex-item puerta"></span>
+            <!-- <div class="replay"></div> -->
+          </li>
+        </ul>
+      </main>
+    </section>
+
+    <footer class="flex-Hcontainer">
+      <!--     <div class="flex-item">Área Sanitaria de Pontevedra e O Salnés</div> -->
+      <div class="flex-item"><i class="fa-solid fa-calendar-days"></i> <time id="FechaActual"></time></div>
+      <div class="flex-item"><i class="fa-solid fa-clock"></i> <time id="HoraActual"></time></div>
+      <ul class="warns">
+        <li class="warnItem no_autoPlay"><i class="fa-solid fa-volume-xmark fa-fw"></i></li>
+        <li class="warnItem no_webSocket"><i class="fa-solid fa-plug-circle-xmark fa-fw"></i></li>
+      </ul>
+      <p class="statusInfo">
+        <span class="hostname"><%=hostname%></span> - 
+        <span class="app">SPPTZE</span>&nbsp;<span class="version">v<%=appVer%></span> - 
+        <span class="elapsed">...</span>
+      </p>
+    </footer>
+
+    <script type="text/javascript" src="/web/3p/jquery/jquery.min.js"></script>
+    <script>
+      const datos = { inicio: Date.now(),
+                      indiceFrase: -1,
+                      avisoUrl: '/web/aviso.mp3',
+                      avisoBase64: '', // Audio de aviso 'din-don-din-don-dín-din'
+                      avisoMIME: '',
+                      timeoutRecientes: 30, // timeout _en segundos_ para cambio de estilo de tickets recientes
+                      timeoutBorrado: 15, // timeout _en minutos_ para la eliminación de tickets viejos
+                      llamando: false,
+                      pendientes: [], // Cola de mensajes pendientes de mostrar
+                      resTemporizadorFechaHora: null,
+                      $llamadas: null,
+                      $frases: null, // Conjunto de referencias jQuery a los <li> de .frases
+                      $cartel: null,
+                      warns: { no_autoPlay: true,
+                               no_webSocket: true },
+                      ws: null, // Cliente WebSocket conectado al backend NodeJS del nodo de visualización
+                    };
+
+      const pad2 = (num) => num.toString().padStart(2, '0');
+
+      function fmtDuracion() {
+        const dura = Math.floor((Date.now() - datos.inicio) / 1000);
+        const dias = Math.floor(dura / (60 * 60 * 24));
+        const horas = Math.floor((dura % (3600 * 24)) / 3600);
+        const mins = Math.floor((dura % 3600) / 60);
+        const segs = dura % 60;
+        return `${pad2(dias)}d:${pad2(horas)}h:${pad2(mins)}m:${pad2(segs)}s`
+      }
+
+      function refreshWarns() {
+        $('footer .warns').toggleClass('no_autoPlay', datos.warns.no_autoPlay)
+                          .toggleClass('no_webSocket', datos.warns.no_webSocket);
+        $('footer .statusInfo .elapsed').text(`Cargada hace ${fmtDuracion()}`);
+      }
+
+      // :-(
+      // AudioContext.status siempre es undefined, y Chrome (v122..v138) no soporta navigator.getAutoplayPolicy()
+      //function testAutoPlay() {
+      //  console.log(`AudioContext status: "${datos.audioContext.status}"`);
+      //  datos.status.no_autoPlay = (datos.audioContext.status != 'running');
+      //}
+
+      // La reproducción de audio sin interacción previa del usuario (como es el caso) es un tema a considerar
+      // Ver https://developer.mozilla.org/en-US/docs/Web/Media/Autoplay_guide
+      //     https://developer.mozilla.org/en-US/docs/Web/HTML/Element/audio
+      function playAudio(lista) {
+        return new Promise(function (resolve, reject) {
+          if (lista.length == 0) {
+            resolve({ ok: true });
+            return;
+          }
+          let trackNo = 0;
+          const audioElement = document.createElement('audio');
+
+          const playNextOrCleanup = (playErrs) => {
+            if ((trackNo < lista.length) && !playErrs) {
+              const audioTrack = lista[trackNo++];
+              audioElement.setAttribute('src', `data:${audioTrack.audioMIME};base64,${audioTrack.audioB64}`);
+            } else {
+              audioElement.remove();
+              resolve({ ok: !playErrs});
+            }
+          };
+
+          // Ha finalizado la reproducción del medio de audio
+          audioElement.addEventListener('ended', function () {
+            setTimeout(() => { playNextOrCleanup(); }, 0);
+          }, false);
+
+          // Es posible iniciar la reproducción del medio de audio
+          audioElement.addEventListener('canplaythrough', function () {
+            const playPromise = audioElement.play();
+            if (playPromise != undefined) {
+              playPromise
+                .then(() => {
+                  datos.warns.no_autoPlay = false;
+                }).catch((error) => {
+                  console.log('Error al reproducir el audio: ' + error.message);
+                  if (error.name === 'NotAllowedError') {
+                    console.log('Revisar parámetros de inicio del navegador y/o configuración de permisos del navegador para el sitio');
+                    datos.warns.no_autoPlay = true;
+                  }
+                  setTimeout(() => { playNextOrCleanup(true); }, 0);
+                });
+            } else { // Navegadores antiguos no devuelven nada en play()
+              console.log('Navegador no soporta Promise en HTMLAudioElement.play()');
+              setTimeout(() => { playNextOrCleanup(true); }, 0);
+            }
+          }, false);
+
+          audioElement.addEventListener('error', function () {
+            console.log('Error cargando o reproduciendo audio');
+            setTimeout(() => { playNextOrCleanup(true); }, 0);
+          });
+
+          playNextOrCleanup();
+        });
+      }
+
+      //Seguro que hay una forma de obtener el base64 a partir del atributo src de un elemento <audio>
+      // https://stackoverflow.com/questions/52925966/how-to-get-blob-data-from-an-existing-audio-element-with-javascript
+      function doGetAviso(urlAviso) {
+        if (!urlAviso) return;
+        return $.ajax({
+          type: 'GET',
+          url: urlAviso,
+          beforeSend: function (xhr) {
+            xhr.overrideMimeType('text/plain; charset=x-user-defined');
+          },
+          success: function (result, textStatus, jqXHR) {
+            if (result.length < 1) {
+              console.log(`El recurso ${urlAviso} no existe`);
+              return;
+            }
+
+            let binary = '';
+            const responseText = jqXHR.responseText;
+            for (let i = 0; i < responseText.length; i++ ) {
+              binary += String.fromCharCode(responseText.charCodeAt(i) & 255);
+            }
+            datos.avisoBase64 = btoa(binary);
+            datos.avisoMIME = jqXHR.getResponseHeader('content-type');
+          },
+          error: function (xhr, textStatus, errorThrown){
+            console.log('Error cargando recurso ' + textStatus);
+          }
+        });
+      }
+
+      function attrsLlamada(llamada) {
+        const attrs = {
+          'data-puerta': llamada.content,
+          'data-ticket': llamada.ticket,
+          'data-message-id': llamada.id,
+          'data-og-message-id': llamada.ogMessageId || llamada.id
+        };
+        return attrs;
+      }
+
+      function ponerTicket($lista, llamada) {
+        const ahora = Date.now();
+        let $liTicket = $lista.find(`li[data-ticket='${llamada.ticket}']`);
+        let veces = 0;
+        let replay = false;
+        if ($liTicket.length > 0) {
+          const puertaAnterior = $liTicket.find('.puerta').text();
+          $liTicket.detach().removeClass('show');
+          $liTicket.find('.puerta').text(llamada.content);
+          veces = parseInt($liTicket.attr('data-veces'));
+          replay = (puertaAnterior == llamada.content);
+        } else {
+          $liTicket = $lista.find('li.oculto').clone();
+          $liTicket.find('.ticket').text(llamada.ticket);
+          $liTicket.find('.puerta').text(llamada.content);
+          $liTicket.removeClass('oculto');
+        }
+        $liTicket.attr(attrsLlamada(llamada))
+                 .attr('data-veces', replay ? (veces + 1) : 1)
+                 .attr('data-ult-llamada', ahora)
+                 .toggleClass('replay', replay);
+        const $previo = $lista.find('li:not(.oculto):first');
+        if ($previo.length) {
+          const falta = datos.timeoutRecientes * 1000 - (ahora - $previo.attr('data-ult-llamada'));
+          if (falta > 0) {
+            $previo.addClass('reciente');
+            setTimeout(function () {
+                         $previo.removeClass('reciente');
+                       }, falta);
+          }
+        }
+        $lista.prepend($liTicket);
+        setTimeout(function () {
+          $liTicket.addClass('show');
+          llamada.displayedAt = ahora;
+          datos.ws.send(JSON.stringify(llamada));
+        }, 0);
+      }
+
+      function retirarTicket($lista, retirada) {
+        const ahora = Date.now();
+        let $liTicket = $lista.find(`li[data-og-message-id='${retirada.ogMessageId || retirada.retract}']`);
+        if ($liTicket.length > 0) {
+          delete retirada.deliveredAt;
+          retirada.retractedAt = ahora;
+          datos.ws.send(JSON.stringify(retirada));
+          $liTicket.addClass('retirada');
+          setTimeout( () => {
+            $liTicket.removeClass('show');
+            setTimeout(() => {
+              $liTicket.remove();
+            }, 250);
+          }, 250);
+        }
+      }
+
+      function eliminarItemsViejos(timestamp) {
+        // Eliminar entradas antiguas de la lista de llamadas (ver datos.timeoutBorrado)
+        datos.$llamadas.find('li:not(.oculto)').each(function () {
+          const $li = $(this);
+          if (timestamp.getTime() - $li.attr('data-ult-llamada') > datos.timeoutBorrado * 60000) {
+            $li.removeClass('show');
+            setTimeout(function () { $li.remove(); }, 1000);
+          }
+        });
+      }
+
+      function ponerFechaYHora() {
+        const ahora = new Date();
+        // Actualizar fecha y hora en la página. TODO incluir localeString en datos de plantilla ejs
+        document.getElementById('FechaActual').innerHTML = ahora.toLocaleDateString('<%=localeString%>');
+        document.getElementById('HoraActual').innerHTML = ahora.toLocaleTimeString().split(':').splice(0, 2).join(':');
+
+        eliminarItemsViejos(ahora);
+
+        // Actualizar los indicadores de avisos
+        refreshWarns();
+      }
+
+      function initPlayList() {
+        const playList = [];
+        if (datos.avisoBase64) {
+          playList.push({audioB64: datos.avisoBase64, audioMIME: datos.avisoMIME});
+        }
+        return playList;
+      }
+
+      //TODO BUG hay un problema en el manejo de repeticiones cuando no hay audio
+      function procesaMensaje(message) {
+        datos.llamando = true;
+        if (message.retract) {
+          retirarTicket(datos.$llamadas, message);
+        } else {
+          ponerTicket(datos.$llamadas, message);
+        }
+        // ---- reproducir avisos y/o mensaje de voz
+        const playList = initPlayList();
+        if (message.audio && message.audio.audioB64) {
+          playList.push({audioB64: message.audio.audioB64, audioMIME: message.audio.audioMIME});
+        }
+        playAudio(playList).then(function (result) {
+          if (datos.pendientes.length > 0) {
+            setTimeout(() => {
+              procesaMensaje(datos.pendientes.shift());
+            }, 50);
+          } else {
+            datos.llamando = false;
+          }
+        });
+      }
+
+      function cambiarFrase() {
+        datos.indiceFrase = (datos.indiceFrase + 1) % datos.$frases.length;
+        const $frase = $(datos.$frases[datos.indiceFrase]);
+        datos.$cartel.fadeOut(1500, function () {
+          window.setTimeout(function () {
+            datos.$cartel.html($frase.html());
+            datos.$cartel.fadeIn(1000);
+          }, 3000);
+        });
+      }
+
+      $(document).ready(function () {
+        datos.$llamadas = $('ul.llamadas');
+        datos.$frases = $('.frases li');
+        datos.$cartel = $('.cartel');
+
+        datos.$frases.each(function () {
+          const frase = $(this);
+          const nuHtml = frase.html()
+                            .replaceAll('\n', '<br>')
+                            .replace(/\fas\[(\w+)\]/g, '<i class="fa-solid fa-$1"></i>');
+          frase.html(nuHtml);
+        });
+        ponerFechaYHora();
+        datos.resTemporizadorFechaHora = setInterval(ponerFechaYHora, 1000 * 15);
+
+        // Obtener sonido de aviso del servidor web para poder reproducirlo cuando sea necesario
+        doGetAviso(datos.avisoUrl).then(function () {
+          // Reproducir sonido de aviso al cargar la página para señalar estado autoplay
+          playAudio(initPlayList()).then(function (result) {
+            refreshWarns();
+          });
+        });
+
+        // Establecer conexión WebSocket con el backend NodeJS
+        datos.host = window.location.host.split(':')[0];
+        datos.ws = new WebSocket(`ws://${datos.host}:<%=wsPort%>`); // Inclurir el puerto de WebSocket en datos de plantilla ejs
+        datos.ws.onopen = () => {
+          datos.warns.no_webSocket = false;
+          console.log('(WebSocket) CONECTADO');
+        };
+        datos.ws.onclose = () => {
+          datos.warns.no_webSocket = true;
+          console.log('(WebSocket) Desconectado');
+        };
+
+        // Manejador de evento WebSocket (mensaje recibido)
+        datos.ws.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          if ((message.ticket && message.content) || message.retract) { // ¿Mensaje de llamada o retirada?
+            console.log(`(WebSocket) Mensaje recibido: ${message.ticket}`);
+            if (!datos.llamando) {
+              // Si no se está procesando ya otro mensaje, procesar éste inmediatamente
+              procesaMensaje(message);
+            } else {
+              // Encolar
+              datos.pendientes.push(message);
+            }
+          } else {
+            // :-(
+          }
+        };
+
+        if (datos.$frases.length) {
+          cambiarFrase();
+          setInterval(cambiarFrase, 30000); // Cambiar de frase cada 30 segundos (¿personalizar en config.js?)
+        }
+      });
+    </script>
+  </body>
+</html>
