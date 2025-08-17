@@ -1,0 +1,40 @@
+# Volumen caché de modelos Hugging Face persistente dentro de Docker
+# Para purgar modelos: 'docker compose -f speaches.yml down -v --remove-orphans'
+volumes:
+  hf-cache: {}
+
+services:
+  speaches:
+    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    ports: ["8000:8000"]
+    environment:
+      HF_HUB_CACHE: /home/ubuntu/.cache/huggingface/hub
+    volumes:
+      - hf-cache:/home/ubuntu/.cache/huggingface/hub
+      # Montar model_aliases.json del host en la ruta que Speaches utiliza
+      - ./model_aliases.json:/home/ubuntu/speaches/model_aliases.json:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/v1/models >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 10s
+
+  install:
+    image: badouralix/curl-jq:alpine
+    depends_on:
+      speaches:
+        condition: service_healthy
+    environment:
+      SPEACHES_BASE: http://speaches:8000
+      ALIASES_PATH: /aliases/model_aliases.json
+      CURL_OPTS: "-fsS"    # Falla si >=400, silencioso, mostrar errores
+    volumes:
+      - ./install.sh:/scripts/install.sh:ro
+      # Montar model_aliases.json del host también en este contenedor, en una
+      #ruta accesible al script install.sh (consistente con ALIASES_PATH)
+      - ./model_aliases.json:/aliases/model_aliases.json:ro
+    entrypoint: ["/bin/sh","-lc"]
+    command: "/scripts/install.sh"
+    restart: "no"

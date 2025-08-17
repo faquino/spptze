@@ -19,7 +19,8 @@ Sistema funcional de visualización con distribución MQTT y control CEC de disp
 ```
 cap6/
 ├── player/       # Nodo de visualización con MQTT y control CEC
-└── server/       # Servidor central con MQTT
+├── server/       # Servidor central con MQTT
+└── tts/          # Infraestructura Text-to-speech basada en Speaches sobre Docker
 ```
 
 ## Tecnologías validadas
