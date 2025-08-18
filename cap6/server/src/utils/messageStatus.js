@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Funciones para determinar estado de entrega de mensajes
-// cap5/server/src/utils/messageStatus.js
+// cap6/server/src/utils/messageStatus.js
 // =============================================================
 
 /**

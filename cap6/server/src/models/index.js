@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - INICIALIZACIÓN DE MODELOS; FUNCIONES DE UTILIDAD
-// cap5/server/src/models/index.js
+// cap6/server/src/models/index.js
 // =============================================================
 const { sequelize } = require('../config/database');
 const modelDefinitions = require('./definitions');

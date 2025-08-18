@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Lógica de rutas - Mensajes
-// cap5/server/src/controllers/messageController.js
+// cap6/server/src/controllers/messageController.js
 // =============================================================
 const {
   ExternalSystem, 

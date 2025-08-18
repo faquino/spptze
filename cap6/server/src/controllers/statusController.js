@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Lógica de rutas - Estado
-// cap5/server/src/controllers/statusController.js
+// cap6/server/src/controllers/statusController.js
 // =============================================================
 const Op = require('sequelize').Op;
 const { Message, DisplayNode, ExternalSystem } = require('../models');

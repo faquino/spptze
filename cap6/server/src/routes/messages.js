@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Router Express: API endpoints relativos a mensajes
-// cap5/server/src/routes/messages.js
+// cap6/server/src/routes/messages.js
 // =============================================================
 const express = require('express');
 const router = express.Router();

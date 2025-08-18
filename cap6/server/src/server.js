@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Servidor central: ORM + API + Interfaces web
-// cap5/server/src/server.js
+// cap6/server/src/server.js
 // =============================================================
 const express = require('express');
 const cors = require('cors');

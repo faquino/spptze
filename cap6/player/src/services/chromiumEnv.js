@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - ENTORNO DE EJECUCIÓN DEL NAVEGADOR
-// cap5/player/src/services/chromiumEnv.js
+// cap6/player/src/services/chromiumEnv.js
 // =============================================================
 
 const displayEnvironmentInfo = () => {

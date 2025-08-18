@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Nodo de visualización: MQTT + WebSocket
-// cap5/player/src/player.js
+// cap6/player/src/player.js
 // =============================================================
 const os = require('os');
 const fs = require('fs');

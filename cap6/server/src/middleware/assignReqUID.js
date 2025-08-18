@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Middleware generación unique Id a petición
-// cap5/server/src/middleware/assignReqId.js
+// cap6/server/src/middleware/assignReqId.js
 // =============================================================
 const ShortUniqueId = require('short-unique-id');
 const uid = new ShortUniqueId();

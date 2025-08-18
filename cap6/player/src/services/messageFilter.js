@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Filtrado de mensajes
-// cap5/player/src/services/messageFilter.js
+// cap6/player/src/services/messageFilter.js
 // =============================================================
 
 /**

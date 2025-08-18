@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - CONTROL HDMI-CEC (NODO DE VISUALIZACIÓN)
-// cap5/player/src/services/cecControl.js
+// cap6/player/src/services/cecControl.js
 // =============================================================
 const { exec } = require('child_process');
 const { promisify } = require('util');

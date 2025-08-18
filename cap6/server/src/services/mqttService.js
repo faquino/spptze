@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - CLIENTE MQTT (SERVIDOR CENTRAL)
-// cap5/server/src/services/mqttService.js
+// cap6/server/src/services/mqttService.js
 // =============================================================
 const mqtt = require('mqtt');
 const EventEmitter = require('events');

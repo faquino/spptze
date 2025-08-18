@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Configuración Swagger/OpenAPI
-// cap5/server/src/config/swagger.js
+// cap6/server/src/config/swagger.js
 // =============================================================
 const path = require('path');
 

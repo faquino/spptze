@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Router Express: API endpoints relativos a nodos
-// cap5/server/src/routes/nodes.js
+// cap6/server/src/routes/nodes.js
 // =============================================================
 const express = require('express');
 const router = express.Router();

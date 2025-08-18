@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Middleware validación de IP
-// cap5/server/src/middleware/validateIP.js
+// cap6/server/src/middleware/validateIP.js
 // =============================================================
 const rangeCheck = require('range_check');
 

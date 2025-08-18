@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Middleware autenticación API key
-// cap5/server/src/middleware/apiAuth.js
+// cap6/server/src/middleware/apiAuth.js
 // =============================================================
 const { ExternalSystem } = require('../models');
 

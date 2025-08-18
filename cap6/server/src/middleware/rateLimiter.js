@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Middleware limitación del número de peticiones
-// cap5/server/src/middleware/rateLimiter.js
+// cap6/server/src/middleware/rateLimiter.js
 // =============================================================
 const rateLimit = require('express-rate-limit');
 

@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Lógica de rutas - Nodos
-// cap5/server/src/controllers/nodeController.js
+// cap6/server/src/controllers/nodeController.js
 // =============================================================
 const { DisplayNode, Location } = require('../models');
 const MQTTService = require('../services/mqttService');

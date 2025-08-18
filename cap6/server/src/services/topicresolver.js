@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - RESOLUCIÓN DE DESTINOS A TOPICS MQTT
-// cap5/server/src/services/topicResolver.js
+// cap6/server/src/services/topicResolver.js
 // =============================================================
 const { Location, ServicePoint, DisplayNode } = require('../models');
 

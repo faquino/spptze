@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - CLIENTE MQTT (NODO DE VISUALIZACIÓN)
-// cap5/player/src/services/mqttService.js
+// cap6/player/src/services/mqttService.js
 // =============================================================
 const mqtt = require('mqtt');
 const EventEmitter = require('events');

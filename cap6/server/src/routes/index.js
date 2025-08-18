@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Router Express: API
-// cap5/server/src/routes/index.js
+// cap6/server/src/routes/index.js
 // =============================================================
 const express = require('express');
 const router = express.Router();

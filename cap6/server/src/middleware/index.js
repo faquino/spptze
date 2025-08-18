@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - Middleware Express.js
-// cap5/server/src/middleware/index.js
+// cap6/server/src/middleware/index.js
 // =============================================================
 const { authenticateAPI } = require('./apiAuth');
 const { validateIPAccess } = require('./validateIP');

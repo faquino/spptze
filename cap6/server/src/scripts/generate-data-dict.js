@@ -7,7 +7,7 @@
 
 // =============================================================
 // SPPTZE - GENERACIÓN MARKDOWN DICCIONARIO DE DATOS
-// cap5/server/src/scripts/generate-data-dict.js
+// cap6/server/src/scripts/generate-data-dict.js
 // =============================================================
 const fs = require('fs');
 const path = require('path');
