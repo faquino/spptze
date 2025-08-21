@@ -16,18 +16,44 @@ const {
   DisplayNode, 
   Message, 
   MessageDelivery,
+  MessageTTS,
   resolverUtils 
 } = require('../models');
 
 const TopicResolver = require('../services/topicresolver');
 const MQTTService = require('../services/mqttService');
 const { processMessageDeliveries } = require('../utils/messageStatus');
+const ttsService = process.env.SPEACHES_URL ? require('../services/ttsService') : null;
+
+const callTTS = async (messageTTS) => {
+  if (!messageTTS) return Promise.resolve(null);
+
+  return (async() => {
+    let ttsStatus = null;
+    let result = null;
+    try {
+      if (!ttsService.available) await ttsService.initialize(); // No pasa nada por intentarlo...
+      result = await ttsService.synthesize(messageTTS.text, messageTTS.locale,
+                                           { speed: messageTTS.speed || 1.0, useCache: true });
+      ttsStatus = { result: 'SYNTH_OK', audioSize: result.length, audioFormat: 'audio/mpeg', resultAt: new Date()};
+    } catch (error) {
+      ttsStatus = { result: 'FAIL', resultAt: new Date(), errorMessage: error.message };
+      result = null;
+    } finally {
+      if (ttsStatus) messageTTS.update(ttsStatus).catch(err => {
+        console.log(`Error actualizando registro TTS del mensaje ${messageTTS.messageId}: ${err.message}`);
+      });
+    }
+    return result;
+  })();
+};
+
 
 class MessageController {
 
   async createMessage(req, res) {
     try {
-      const { ticket, content, target, targetType, priority = 1, channel = 'calls', externalRef } = req.body;
+      const { ticket, content, target, targetType, priority = 1, channel = 'calls', externalRef, tts } = req.body;
       
       // Crear mensaje
       const messageData = {
@@ -58,10 +84,17 @@ class MessageController {
         messageData.targetLocationId = target;
         effectiveTargetId = messageData.targetLocationId;
       }
-  
+      
       // Guardar mensaje en BD
       const message = await Message.create(messageData);
-  
+
+      // Guardar info sobre TTS si es necesario
+      let messageTTS = null;
+      if (tts && tts.text && tts.locale) {
+        messageTTS = await MessageTTS.create({ messageId: message.id, text: tts.text, locale: tts.locale });
+      }
+      const ttsPromise = callTTS(messageTTS); // Asíncrona (significativo sii messageTTS != null, claro)
+
       // Resolver el topic a usar para publicar el mensaje y sus nodos destino
       const topic = await TopicResolver.buildTopic(effectiveTargetType, effectiveTargetId);
       const targetNodes = await TopicResolver.getTargetNodes(message);
@@ -74,7 +107,8 @@ class MessageController {
       
       if (deliveries.length > 0) {
         await MessageDelivery.bulkCreate(deliveries);
-        MQTTService.publishMessage(topic, message);
+        const ttsResult = await ttsPromise;
+        MQTTService.publishMessage(topic, message, ttsResult);
       }
       
       console.log(`New message: ${message.id} (${targetNodes.length} nodes)`);
@@ -123,7 +157,6 @@ class MessageController {
         expiresAt: message.expiresAt,
         ...deliveryInfo
       };
-  
       res.json(response);
   
     } catch (error) {
@@ -171,7 +204,7 @@ class MessageController {
 
   async repeatMessage(req, res) {
     try {
-      const { content, target, targetType, priority} = req.body;
+      const { content, target, targetType, priority, tts } = req.body;
       const { id } = req.params;
       const ahora = new Date();
 
@@ -236,6 +269,13 @@ class MessageController {
       // Guardar la repetición y publicar el mensaje de retirada del original
       const repetition = await Message.create(messageData);
 
+      // Guardar info sobre TTS si es necesario
+      let messageTTS = null;
+      if (tts && tts.text && tts.locale) {
+        messageTTS = await MessageTTS.create({ messageId: repetition.id, text: tts.text, locale: tts.locale });
+      }
+      const ttsPromise = callTTS(messageTTS); // Asíncrona (significativo sii messageTTS != null, claro)
+
       // Resolver el topic a usar para publicar el mensaje y sus nodos destino
       const topic = await TopicResolver.buildTopic(effectiveTargetType, effectiveTargetId);
       const targetNodes = await TopicResolver.getTargetNodes(repetition);
@@ -246,7 +286,8 @@ class MessageController {
       }));
       if (deliveries.length > 0) {
         await MessageDelivery.bulkCreate(deliveries);
-        MQTTService.publishMessage(topic, repetition);
+        const ttsResult = await ttsPromise;
+        MQTTService.publishMessage(topic, repetition, ttsResult);
       }
 
       console.log(`Repeated message: ${id} -> ${repetition.id} (${targetNodes.length} nodes)`);
@@ -262,9 +303,7 @@ class MessageController {
       console.error('Error repeating message:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
-
   }
-
 
 }
 

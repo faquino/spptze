@@ -110,6 +110,9 @@ const validators = {
 };
 
 
+// MODELO DE DATOS
+// =============================================================
+
 // HIERARCHY (Jerarquías organizativas)
 // =============================================================
 const Hierarchy = (sequelize) => {
@@ -669,11 +672,50 @@ const DisplayTemplate = (sequelize) => {
 };
 
 
+// MESSAGE_TTS (Registro de locuciones)
+// =============================================================
+const MessageTTS = (sequelize) => {
+  return sequelize.define('MessageTTS', {
+    messageId: { type: DataTypes.STRING(16), primaryKey: true, allowNull: false, field: 'message_id',
+      references: { model: 'messages', key: 'id'},
+      onDelete: 'CASCADE', // Borrar mensaje elimina locuciones
+      onUpdate: 'RESTRICT'
+    },
+    text: { type: DataTypes.TEXT, allowNull: false,
+      validate: { notEmpty: true },
+      comment: 'Texto a sintetizar'
+    },
+    locale: { type: DataTypes.STRING(12), allowNull: false,
+      comment: 'Alias para el moodelo según ttsService.voiceMap'
+    },
+    speed: { type: DataTypes.DECIMAL(2, 1), defaultValue: 1.0, validate: { min: 0.3, max: 3.0 },
+      comment: 'Velocidad de locución del texto'
+    },
+    result: { type: DataTypes.STRING(12), defaultValue: 'NONE',
+      validate: { isIn: [ ['NONE', 'FAIL', 'SYNTH_OK', 'CACHE_HIT'] ] }
+    },
+    errorMessage: { type: DataTypes.TEXT, field: 'error_message' },
+    audioFormat: { type: DataTypes.STRING(10), field: 'audio_format',
+      validate: { isIn: [ ['audio/mpeg', 'audio/wav'] ] },
+      comment: 'Formato (MIME type) del audio generado'
+    },
+    audioSize: { type: DataTypes.INTEGER, field: 'audio_size', validate: { min: 0 } },
+    requestedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, allowNull: false, field: 'requested_at' },
+    resultAt: { type: DataTypes.DATE, field: 'result_at' }
+  }, {
+    tableName: 'message_tts',
+    timestamps: false,
+    comment: 'Registro de locuciones de mensajes y resultados de peticiones',
+    indexes: [ { fields: ['requested_at'] }, { fields: ['result'] }, { fields: ['locale'] } ]
+  });
+};
+
+
 // DEFINICIÓN DE ASOCIACIONES ENTRE MODELOS-ENTIDADES
 // =============================================================
 const defineAssociations = ({ Hierarchy, HierarchyLevel, Location, DisplayNode,
                               NodeLocationMapping, ServicePointLocationMapping, ExternalSystem,
-                              ServicePoint, Message, MessageDelivery, DisplayTemplate }) => {
+                              ServicePoint, Message, MessageDelivery, DisplayTemplate, MessageTTS }) => {
 
   // Relación jerarquía--nivel
   Hierarchy.hasMany(HierarchyLevel, { foreignKey: 'hierarchyId' });
@@ -754,6 +796,9 @@ const defineAssociations = ({ Hierarchy, HierarchyLevel, Location, DisplayNode,
     foreignKey: 'nodeId',
     otherKey: 'messageId'
   });
+
+  MessageTTS.belongsTo(Message, { foreignKey: 'messageId', as: 'message' });
+  Message.hasOne(MessageTTS, { foreignKey: 'messageId', as: 'tts' });
 };
 
 
@@ -771,7 +816,8 @@ module.exports = {
     ServicePoint,
     Message,
     MessageDelivery,
-    DisplayTemplate
+    DisplayTemplate,
+    MessageTTS
   },
   funs: { defineAssociations }
 };

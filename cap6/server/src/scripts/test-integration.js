@@ -245,7 +245,8 @@ async function testRepeatFlow() {
       content: 'C-13',
       target: 'CARDIO_MAÑANA_DRG',
       targetType: 'service_point',
-      externalRef: 'INTEGRATION_TEST'
+      externalRef: 'INTEGRATION_TEST',
+      tts: { text: 'Tique T R 01: puerta C-13', locale: 'es-ES-f' }
     };
     
     const createResponse = await makeRequest('POST', '/messages', newMessage, system.apiKey);
@@ -256,8 +257,8 @@ async function testRepeatFlow() {
     await delay(500);
     const repMessage = {
       ...newMessage,
-      ticket: 'TR01',
-      content: 'C-15'
+      content: 'C-15',
+      tts: { text: 'Tique T R 01: puerta C-15', locale: 'es-ES' }
     };
 
     const repeatResponse = await makeRequest('PATCH', `/messages/${createResponse.data.id}/repeat`, repMessage, system.apiKey);

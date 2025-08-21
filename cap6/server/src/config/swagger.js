@@ -49,9 +49,34 @@ const swaggerOptions = {
           default: 'service_point',
           description: 'Tipo de destino para direccionamiento (ubicación/punto de servicio)'
         },
+        TTSConfig: {
+          type: 'object',
+          description: 'Configuración de síntesis de voz',
+          properties: {
+            locale: {
+              type: 'string',
+              description: 'Código de idioma definido en ttsService. No necesariamente BCP47 (ISO 639 + ISO 3166)',
+              example: 'es-ES'
+            },
+            text: {
+              type: 'string',
+              maxLength: 500,
+              description: 'Texto a sintetizar',
+              example: 'Turno A K 47: consulta 3'
+            },
+            speed: {
+              type: 'number',
+              minimum: 0.3,
+              maximum: 3.0,
+              default: 1.0,
+              description: 'Velocidad de habla (1.0 = normal). Rango dentro del de webui Speaches'
+            }
+          },
+          additionalProperties: false,
+          required: ['locale', 'text']
+        },
         Message: {
           type: 'object',
-          required: ['content', 'target'],
           properties: {
             ticket: {
               type: 'string',
@@ -87,8 +112,14 @@ const swaggerOptions = {
               type: 'string',
               description: 'Referencia externa del sistema origen',
               example: 'CITA_12345'
+            },
+            tts: {
+              $ref: '#/components/schemas/TTSConfig',
+              description: 'Configuración de síntesis de voz (opcional)'
             }
-          }
+          },
+//          additionalProperties: false,
+          required: ['content', 'target']
         },
         MessageResponse: {
           type: 'object',

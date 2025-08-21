@@ -21,7 +21,7 @@ const { testConnection, syncDatabase } = require('./config/database');
 
 const MQTTService = require('./services/mqttService');
 const { swaggerOptions } = require('./config/swagger.js');
-
+const ttsService = process.env.SPEACHES_URL ? require('./services/ttsService') : null;
 
 const app = express();
 
@@ -118,8 +118,12 @@ async function initializeServices() {
       mqttOpts.password = process.env.MQTT_PASS;
     }
     await MQTTService.connect(mqttBrokerUrl, mqttOpts);
-    console.log('MQTT conectado');
-    
+
+    // Servicio TTS (Speaches)
+    if (ttsService) {
+      await ttsService.initialize();
+    }
+
     console.log('Servicios iniciados correctamente');
   } catch (error) {
     console.error('Error iniciando servicios:', error);
