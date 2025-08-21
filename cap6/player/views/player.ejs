@@ -493,7 +493,7 @@
         return playList;
       }
 
-      //TODO BUG hay un problema en el manejo de repeticiones cuando no hay audio
+      //TODO BUG hay un problema en el manejo de repeticiones cuando no hay capacidad de audio
       function procesaMensaje(message) {
         datos.llamando = true;
         if (message.retract) {
@@ -503,8 +503,8 @@
         }
         // ---- reproducir avisos y/o mensaje de voz
         const playList = initPlayList();
-        if (message.audio && message.audio.audioB64) {
-          playList.push({audioB64: message.audio.audioB64, audioMIME: message.audio.audioMIME});
+        if (message.ttsMIME && message.ttsB64) {
+          playList.push({ audioB64: message.ttsB64, audioMIME: message.ttsMIME });
         }
         playAudio(playList).then(function (result) {
           if (datos.pendientes.length > 0) {
