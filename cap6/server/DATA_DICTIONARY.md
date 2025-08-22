@@ -1,6 +1,6 @@
 # Diccionario de Datos - Base de Datos SPPTZE
 
-*Generado el 1/8/2025, 12:07:10 por generate-data-dict.js a partir del modelo Sequelize*
+*Generado el 22/8/2025, 17:07:07 por generate-data-dict.js a partir del modelo Sequelize*
 
 ## Índice de Tablas
 
@@ -12,6 +12,7 @@
 - [locations](#locations)
 - [messages](#messages)
 - [message_deliveries](#message-deliveries)
+- [message_tts](#message-tts)
 - [node_location_mapping](#node-location-mapping)
 - [service_points](#service-points)
 - [service_point_location_mapping](#service-point-location-mapping)
@@ -282,6 +283,38 @@ Registros de entrega de mensajes a nodos de visualización
 
 - **ackAfterCreate:** Validación personalizada
 - **displayAfterDelivery:** Validación personalizada
+
+---
+
+<a id="message-tts"></a>
+## message_tts
+
+Registro de locuciones de mensajes y resultados de peticiones
+
+**Modelo:** MessageTTS  
+**Tabla:** message_tts  
+**Timestamps:** No
+
+### Campos
+
+| Campo | Tipo | Restricciones | Defecto | Validaciones |
+|-------|------|---------------|---------|--------------|
+| `messageId` | VARCHAR(16) | PK, FK → `messages.id` | - | NOT NULL, PRIMARY KEY |
+| `text` [ℹ️](## "Texto a sintetizar") | TEXT | - | - | NOT NULL, notEmpty (custom) |
+| `locale` [ℹ️](## "Alias para el moodelo según ttsService.voiceMap") | VARCHAR(12) | - | - | NOT NULL |
+| `speed` [ℹ️](## "Velocidad de locución del texto") | DECIMAL | - | 1 | Mínimo: 0.3, Máximo: 3 |
+| `result` | VARCHAR(12) | - | "NONE" | Valores: [["NONE","FAIL","SYNTH_OK","CACHE_HIT"]] |
+| `errorMessage` | TEXT | - | - | - |
+| `audioFormat` [ℹ️](## "Formato (MIME type) del audio generado") | VARCHAR(10) | - | - | Valores: [["audio/mpeg","audio/wav"]] |
+| `audioSize` | INTEGER | - | - | Mínimo: 0 |
+| `requestedAt` | DATE | - | undefined | NOT NULL |
+| `resultAt` | DATE | - | - | - |
+
+#### Índices
+
+- **Índice 1:** requested_at
+- **Índice 2:** result
+- **Índice 3:** locale
 
 ---
 
