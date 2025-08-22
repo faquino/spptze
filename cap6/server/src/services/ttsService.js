@@ -97,7 +97,7 @@ class TTSService {
    * @param {Object} options - Opciones adicionales de síntesis
    * @param {number} options.speed - Velocidad de locución (default: 1.0)
    * @param {boolean} options.useCache - Usar caché (default: config.cacheEnabled)
-   * @returns {Promise<Buffer>} - Audio en formato MP3
+   * @returns {Promise<Object>} - { audio: Buffer (Audio en formato MP3), cacheHit: boolean }
    * @throws {Error} Si el servicio no está disponible o falla la síntesis
    */
   async synthesize(text, language = 'es-ES', options = {}) {
@@ -113,7 +113,7 @@ class TTSService {
       const cacheItem = this.audioCache.get(cacheKey);
       cacheItem.lastUsed = Date.now();
       this.cacheHits++;
-      return cacheItem.audio;
+      return { audio: cacheItem.audio, cacheHit: true };
     }
 
     // Mapear idioma a modelo/voz disponible
@@ -147,7 +147,7 @@ class TTSService {
       if (useCache) {
         this.audioCache.set(cacheKey, { audio: audioBuffer, since: Date.now() });
       }
-      return audioBuffer;
+      return { audio: audioBuffer, cacheHit: false };
 
     } catch (error) {
       const errorMsg = error.response?.data?.detail || error.message;

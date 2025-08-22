@@ -679,7 +679,7 @@ const MessageTTS = (sequelize) => {
     messageId: { type: DataTypes.STRING(16), primaryKey: true, allowNull: false, field: 'message_id',
       references: { model: 'messages', key: 'id'},
       onDelete: 'CASCADE', // Borrar mensaje elimina locuciones
-      onUpdate: 'RESTRICT'
+      onUpdate: 'RESTRICT' // Se impediría cambiar el id de mensaje (y sería raro) de haber un message_tts asociado
     },
     text: { type: DataTypes.TEXT, allowNull: false,
       validate: { notEmpty: true },

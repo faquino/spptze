@@ -240,7 +240,7 @@ class MQTTService extends EventEmitter {
    * @param {string} topic 
    * @param {Object} message 
    */
-  async publishMessage(topic, message, audioBuffer) {
+  async publishMessage(topic, message, ttsResult) {
     const payload = {
       id: message.id,
       channel: message.channel,
@@ -251,9 +251,9 @@ class MQTTService extends EventEmitter {
     };
     if (message.ogMessageId) payload.ogMessageId = message.ogMessageId;
 
-    if (audioBuffer) {
+    if (ttsResult) {
       payload.ttsMIME = 'audio/mpeg';
-      payload.ttsB64 = audioBuffer.toString('base64');
+      payload.ttsB64 = ttsResult.audio.toString('base64');
     }
     await this.publish(topic, payload, { qos: 1 });
     console.log(`MQTT: Published message ${message.id} to ${topic}`);

@@ -30,21 +30,24 @@ const callTTS = async (messageTTS) => {
 
   return (async() => {
     let ttsStatus = null;
-    let result = null;
+    let callResult = null;
     try {
       if (!ttsService.available) await ttsService.initialize(); // No pasa nada por intentarlo...
-      result = await ttsService.synthesize(messageTTS.text, messageTTS.locale,
+      callResult = await ttsService.synthesize(messageTTS.text, messageTTS.locale,
                                            { speed: messageTTS.speed || 1.0, useCache: true });
-      ttsStatus = { result: 'SYNTH_OK', audioSize: result.length, audioFormat: 'audio/mpeg', resultAt: new Date()};
+      ttsStatus = { result: callResult.cacheHit ? 'CACHE_HIT': 'SYNTH_OK',
+                    audioSize: callResult.audio.length,
+                    audioFormat: 'audio/mpeg',
+                    resultAt: new Date() };
     } catch (error) {
       ttsStatus = { result: 'FAIL', resultAt: new Date(), errorMessage: error.message };
-      result = null;
+      callResult = null;
     } finally {
       if (ttsStatus) messageTTS.update(ttsStatus).catch(err => {
         console.log(`Error actualizando registro TTS del mensaje ${messageTTS.messageId}: ${err.message}`);
       });
     }
-    return result;
+    return callResult;
   })();
 };
 

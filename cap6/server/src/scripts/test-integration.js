@@ -246,9 +246,9 @@ async function testRepeatFlow() {
       target: 'CARDIO_MAÑANA_DRG',
       targetType: 'service_point',
       externalRef: 'INTEGRATION_TEST',
-      tts: { text: 'Tique T R 01: puerta C-13', locale: 'es-ES-f' }
+      tts: { text: 'Tique T R 01: puerta C-13', locale: 'es-ES' }
     };
-    
+
     const createResponse = await makeRequest('POST', '/messages', newMessage, system.apiKey);
     if (!createResponse.ok) {
       throw new Error(`Error creando mensaje: ${JSON.stringify(createResponse.data)}`);
