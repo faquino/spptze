@@ -12,51 +12,6 @@
 const { DisplayNode, Location, MessageDelivery, ServicePoint } = require('../models');
 
 class NodeManager {
-  
-  /**
-   * Construir el conjunto de suscripciones MQTT para un nodo - NO USADO
-   */
-/*
-  async getNodeSubscriptionsByID(nodeId) {
-    const node = await DisplayNode.findByPk(nodeId, {
-      include: [{
-        model: Location,
-        through: { 
-          attributes: ['showChildren'],
-          where: { active: true }
-        }
-      }]
-    });
-
-    if (!node || !node.active) {
-      throw new Error(`Active node ${nodeId} not found`);
-    }
-
-    const subscriptions = new Set();
-    
-    for (const location of node.Locations) {
-      const showChildren = location.NodeLocationMapping.showChildren;
-      
-      // Construir topic base para la ubicación
-      const path = await location.getPath();
-      const topicBase = `spptze/messages/loc/${path.map(l => l.id).join('/')}`;
-      
-      if (showChildren) {
-        // Suscripción con wildcard para incluir descendientes
-        subscriptions.add(`${topicBase}/#`);
-      } else {
-        // Suscripción exacta solo a esta ubicación
-        subscriptions.add(topicBase);
-      }
-      
-      // Añadir suscripciones a service points relacionados con esta ubicación
-      const servicePointSubs = await this.getServicePointSubscriptions(location);
-      servicePointSubs.forEach(sub => subscriptions.add(sub));
-    }
-    
-    return Array.from(subscriptions);
-  }
-*/
 
   /**
    * Construir suscripciones MQTT para un nodo
