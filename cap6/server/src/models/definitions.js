@@ -215,7 +215,7 @@ const Location = (sequelize) => {
     },
     templateId: { type: DataTypes.STRING(16), allowNull: true, field: 'template_id',
       references: { model: 'display_templates', key: 'id' },
-      onDelete: 'SET NULL', // Permitir borrar plantilla, heredará de otra ubicación precedente
+      onDelete: 'SET NULL', // Permitir borrar plantilla, se aplicará de alguna otra ubicación precedente
       onUpdate: 'CASCADE'
     }
   }, {
@@ -346,9 +346,9 @@ const DisplayNode = (sequelize) => {
 
   // Se devuelve un array con las plantillas más específicas (a mayor profundidad en la jerarquía). El código cliente
   //deberá tomar la decisión correspondiente si la longitud de dicho array > 1
-  model.prototype.getEffectiveTemplate = async function () {
-    // Si hay template override se usa ése
-    if (this.templateOverrideId) return await sequelize.models.DisplayTemplate.findByPk(this.templateOverrideId);
+  model.prototype.getEffectiveTemplates = async function () {
+    // Si hay template override se usa esa [plantilla]
+    if (this.templateOverrideId) return [await sequelize.models.DisplayTemplate.findByPk(this.templateOverrideId)];
 
     // En otro caso, hay que buscar la plantilla de ubicación más específica
     const locations = await this.getLocations({
@@ -362,18 +362,22 @@ const DisplayNode = (sequelize) => {
 
     // Calcular profundidad de cada ubicación para encontrar las más específicas
     for (const location of locations) {
-      if (location.displayTemplate) {
+      let template = null;
+      try {
+        template = location.displayTemplate || await location.getEffectiveTemplate();
+      } catch (error) {   }
+      if (template) {
         const depth = await location.getDepth();
         if (depth > highestDepth) {
           // Nueva profundidad más alta, reiniciar array
           highestDepth = depth;
           templatesAtHighestDepth.length = 0;
-          templatesAtHighestDepth.push(location.displayTemplate);
+          templatesAtHighestDepth.push(template);
         } else if (depth === highestDepth) {
           // Misma profundidad, añadir al array si no está ya
-          const templateExists = templatesAtHighestDepth.some(t => t.id === location.displayTemplate.id);
+          const templateExists = templatesAtHighestDepth.some(t => t.id === template.id);
           if (!templateExists) {
-            templatesAtHighestDepth.push(location.displayTemplate);
+            templatesAtHighestDepth.push(template);
           }
         }
       }

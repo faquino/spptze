@@ -198,19 +198,24 @@ async function testDatabase() {
   console.log('\nEjecutando pruebas mínimas...');
 
   try {
+    const locationId = 'CONSULTA_3';
     // Probar consulta con asociaciones
-    const location = await Location.findByPk('CONSULTA_3', {
+    const location = await Location.findByPk(locationId, {
       include: [
         { model: DisplayTemplate, as: 'displayTemplate' },
         { model: Location, as: 'parent' },
         { model: ServicePoint }
       ]
     });
-    
-    console.log('Ubicación encontrada:', location?.name);
-    console.log('Ubicación padre:', location?.parent?.name);
-    console.log('Plantilla:', location?.DisplayTemplate?.name || 'Heredada');
-    console.log('Puntos de servicio:', location?.ServicePoints?.map(sp => sp.name));
+
+    if (location) {
+      console.log('Ubicación encontrada:', location.name);
+      console.log('Ubicación madre:', location.parent?.name);
+      console.log('Plantilla:', location.DisplayTemplate?.name || `(Propagada): ${location.getEffectiveTemplate()?.name}`);
+      console.log('Puntos de servicio:', location?.ServicePoints?.map(sp => sp.name));
+    } else {
+      console.log('Ubicación NO ENCONTRADA:', locationId)
+    }
 
     // Probar método getEffectiveTemplate
     const node = await DisplayNode.findByPk('NODE_CARDIO', {
@@ -221,7 +226,7 @@ async function testDatabase() {
     console.log('Ubicaciones asignadas:', node?.Locations?.map(l => l.name));
     if (node) {
       console.log('\ Probando método getEffectiveTemplate...');
-      const templates = await node.getEffectiveTemplate();
+      const templates = await node.getEffectiveTemplates();
       if (templates.length === 0) {
         console.log('Plantillas efectivas para NODE_CARDIO: Ninguna');
       } else if (templates.length === 1) {
