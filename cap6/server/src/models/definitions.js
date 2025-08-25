@@ -98,6 +98,9 @@ const getEntityDepth = async (model, entity, parentFieldName = null) => {
 // TODO: migrar a nueva tabla 'channels' vinculada con ExternalSystem, DisplayTemplate y Message
 const VALID_MESSAGE_CHANNELS = ['calls', 'info', 'emergency', 'announcements'];
 
+// Tipos de widgets válidos en las plantillas de visualización
+const VALID_WIDGET_TYPES = ['queue', 'logo', 'clock', 'info', 'ticker', 'media', 'weather'];
+
 // Para reutilizar funciones de validación en los modelos
 const validators = {
   // En Location, DisplayNode y ServicePoint
@@ -654,25 +657,57 @@ const MessageDelivery = (sequelize) => {
 // DISPLAY_TEMPLATE (Plantillas de presentación)
 // =============================================================
 const DisplayTemplate = (sequelize) => {
-  return sequelize.define('DisplayTemplate', {
+  const model = sequelize.define('DisplayTemplate', {
     id: { type: DataTypes.STRING(16), primaryKey: true, allowNull: false },
-    name: { type: DataTypes.STRING(80), allowNull: false },
+    name: { type: DataTypes.STRING(80), allowNull: false, validate: { notEmpty: true } },
     description: { type: DataTypes.TEXT, allowNull: true },
-    config: { type: DataTypes.JSON, allowNull: true, defaultValue: {},
+    orientation: { type: DataTypes.STRING(10), defaultValue: 'landscape', allowNull: false,
+      validate: { isIn: [ ['landscape', 'portrait'] ] },
+      comment: 'Orientación de pantalla de la plantilla'
+    },
+    targetSize: { type: DataTypes.INTEGER, allowNull: true, field: 'target_size',
+      validate: { min: 32, max: 100 },
+      comment: 'Tamaño mínimo recomendado para el televisor (diagonal en pulgadas)'
+    },
+    updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, allowNull: false },
+    definition: { type: DataTypes.JSON, allowNull: false, defaultValue: {},
       validate: {
-        isValidConfig(value) {
+        //TODO hacer esto validando contra un JSON Schema
+        isValidDefinition(value) {
           // Validación básica de estructura de configuración
-          if (value && typeof value !== 'object') {
-            throw new Error('Config must be a valid JSON object');
+          if (!value || typeof value !== 'object') {
+            throw new Error('Definition must be a valid JSON object');
+          }
+          if (!value.widgets || !Array.isArray(value.widgets)) {
+            throw new Error('Definition must contain a widgets array');
+          }
+          for (const widget of value.widgets) {
+            if (!widget.id || !widget.type || !widget.area) {
+              throw new Error('Each widget must have id, type and area properties');
+            }
+            if (!VALID_WIDGET_TYPES.includes(widget.type)) {
+              throw new Error(`Widget type must be one of [${VALID_WIDGET_TYPES.join(', ')}]`);
+            }
+          }
+          // Validar áreas del grid
+          if (!value.layout || !value.layout.areas || typeof value.layout.areas !== 'object') {
+            throw new Error('Layout must define areas')
           }
         }
-      }
+      },
+      comment: 'JSON que define tema, layout, areas, widgets etc.'
+    },
+    isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,
+      comment: 'Decide si '
     }
   }, {
     tableName: 'display_templates',
     timestamps: false,
+    indexes: [ { fields: ['name'], unique: true },
+               { fields: ['isActive']}],
     comment: 'Plantillas que definen apariencia y comportamiento de la presentación en los nodos de visualización'
   });
+  return model;
 };
 
 
