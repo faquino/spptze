@@ -222,7 +222,7 @@ async function startPlayer() {
     app.listen(appPort, () => {
       console.log('SPPTZE Player - Started successfully');
       console.log('-'.repeat(60));
-      console.log(`Queue calling display inteface at: http://localhost:${appPort}`);
+      console.log(`Queue calling display interface at: http://localhost:${appPort}`);
       console.log('-'.repeat(60));
     });
     
