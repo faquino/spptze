@@ -258,7 +258,7 @@ const Location = (sequelize) => {
   });
 
   model.prototype.getEffectiveTemplate = async function () {
-    if (this.templateId) return this.templateId;
+    if (this.templateId) return await sequelize.models.DisplayTemplate.findByPk(this.templateId);
     if (this.parentId) {
       const parent = await sequelize.models.Location.findByPk(this.parentId);
       return parent ? await parent.getEffectiveTemplate() : null;
