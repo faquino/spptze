@@ -395,8 +395,8 @@ const swaggerOptions = {
       }
     ]
   },
-  apis: [ path.join(__dirname, '../server.js'),
-          path.join(__dirname, '../routes/*.js') ] // Archivos que contienen anotaciones JSDoc
+  apis: [ path.join(__dirname, '..', 'server.js'),
+          path.join(__dirname, '..', 'routes', '*.js') ] // Archivos que contienen anotaciones JSDoc
 };
 
 module.exports = { swaggerOptions };

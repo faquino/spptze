@@ -121,12 +121,12 @@ const app = express();
 app.set('view engine', 'ejs');
 
 // configurar el origen de los recursos web estáticos
-app.use('/web', express.static(path.join(__dirname, '../public')));
+app.use('/web', express.static(path.join(__dirname, '..', 'public')));
 // Gestionar manualmente dependencias del frontend como jQuery con NPM por ahora al menos así sus artefactos no van
 // a parar al repositorio
 // TODO ver yarn o vite
-app.use('/web/3p/jquery', express.static(path.join(__dirname, '../node_modules/jquery/dist/')));
-app.use('/web/3p/fontawesome', express.static(path.join(__dirname, '../node_modules/@fortawesome/fontawesome-free')));
+app.use('/web/3p/jquery', express.static(path.join(__dirname, '..' , 'node_modules', 'jquery', 'dist')));
+app.use('/web/3p/fontawesome', express.static(path.join(__dirname, '..' , 'node_modules', '@fortawesome', 'fontawesome-free')));
 
 
 app.get('/', (request, response) => {
