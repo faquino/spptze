@@ -1,0 +1,29 @@
+<%#
+SPPTZE - Sistema de Presentación para Pantallas de Turno en Zonas de Espera
+TFE Grado en Ingeniería Informática - Universidad Internacional de La Rioja
+Copyright (c) 2025 Francisco José Aquino García
+Licensed under the MIT License - see LICENSE file for details
+%>
+<!-- cap6/player/views/widgets/clock.ejs --><%#
+  Widget clock - Muestra la hora y (opcionalmente) la fecha actuales
+
+  Configuración (widget.config):
+    - timeFormat: string - Patrón de formato de hora (defecto: 'HH:mm:ss')
+      Soportado: HH (24h), hh (12h), mm (minutos), ss (segundos), a (am/pm) o A (AM/PM)
+    - dateFormat: string - Patrón de formato de fecha (opcional; si no se especifica, no se mostrará la fecha)
+      'long' para cadena localizada, o patrones: 'DD/MM/YY', 'MM/DD/YYYY', 'DD de MMM de YYYY' etc.
+
+  Tema (widget.theme):
+    - colors.background: string - Color de fondo del panel
+    - colors.text: string - Color del texto para hora
+    - colors.secondaryText: string - Color del texto para fecha
+    - typography.fontSize: string - Tamaño de fuente
+%>
+<div class="widget widget-clock" id="widget-<%= widget.id %>">
+  <div class="clock-display">
+    <div class="time"></div>
+<% if (config.dateFormat) { %>
+    <div class="date"></div>
+<% } %>
+  </div>
+</div>

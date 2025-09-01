@@ -17,6 +17,7 @@ const WebSocket = require('ws');
 const MQTTService = require('./services/mqttService');  // Cliente MQTT
 const CECControlService = require('./services/cecControl'); // Control CEC
 const wsPort = process.env.WEBSOCKET_PORT || 80;
+const templateRenderer = require('./services/templateRenderer');
 
 
 // Para obtener información de la interfaz de red por defecto
@@ -68,7 +69,8 @@ const getHeartBeatInfoFun = (socketServer, cecControl) => {
     return { serialNumber: serial,
              systemInfo: getSystemInfo(),
              socketClients: socketServer.clients.size,
-             cecStatus: cecControl.getStatus() };
+             cecStatus: cecControl.getStatus(),
+             templateId: templateRenderer.getTemplateId() };
   };
 };
 
@@ -123,25 +125,36 @@ app.set('view engine', 'ejs');
 app.use('/web', express.static(path.join(__dirname, '..', 'public')));
 // Gestionar manualmente dependencias del frontend como jQuery con NPM por ahora al menos así sus artefactos no van
 // a parar al repositorio
-// TODO ver yarn o vite
+// TODO ver yarn o vite?
 app.use('/web/3p/jquery', express.static(path.join(__dirname, '..' , 'node_modules', 'jquery', 'dist')));
 app.use('/web/3p/fontawesome', express.static(path.join(__dirname, '..' , 'node_modules', '@fortawesome', 'fontawesome-free')));
 
 
-app.get('/', (request, response) => {
+app.get('/legacy', (request, response) => {
   let info = getSystemInfo();
 //  info.frases = config.frases || [];
   response.render('player', info);
 });
 
+app.get('/', async (req, res) => {
+  try {
+    const html = await templateRenderer.renderPage(getSystemInfo());
+    res.type('html').send(html);
+  } catch (error) {
+    console.error('Error rendering page:', error);
+    res.status(500).send('<h1>Error loading display</h1>');
+  }
+});
 
 // INICIALIZACIÓN DE SERVICIOS
 // =============================================================
 async function initializeServices() {
   try {
     console.log('Starting services...');
+    await templateRenderer.initialize();
     const socketServer = initWebSocketServer();
     const cecControl = await initCECControl();
+    //TODO: la app debería arrancar incluso sin conexión MQTT
     const mqttClient = await initMQTTClient(serial, getHeartBeatInfoFun(socketServer, cecControl));
 
     socketServer.on('connection', (socketClient) => {
@@ -180,6 +193,11 @@ async function initializeServices() {
     mqttClient.on('spptze:player:mqtt:control', (topic, payload) => {
       // Se procesa en cecControl
       cecControl.processControlCommand(payload);
+    });
+
+    // Se ha recibido una plantilla por configuración (nodeUp) o actualización
+    mqttClient.on('spptze:player:mqtt:template', (template) => {
+      templateRenderer.updateTemplate(template);
     });
 
     console.log('Services started successfully');

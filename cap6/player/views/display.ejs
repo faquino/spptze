@@ -1,0 +1,518 @@
+<%#
+SPPTZE - Sistema de Presentación para Pantallas de Turno en Zonas de Espera
+TFE Grado en Ingeniería Informática - Universidad Internacional de La Rioja
+Copyright (c) 2025 Francisco José Aquino García
+Licensed under the MIT License - see LICENSE file for details
+%><!DOCTYPE html>
+<!-- cap6/player/views/display.ejs -->
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="description" content="SPPTZE - Sistema de presentación para pantallas de turno en zonas de espera">
+  <meta name="author" content="Francisco José Aquino García">  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPPTZE Display - <%= template.name %></title>
+  <link rel="icon" type="image/x-icon" href="/web/favicon.ico">
+  <link rel="stylesheet" href="/web/3p/fontawesome/css/fontawesome.min.css">
+  <link rel="stylesheet" href="/web/3p/fontawesome/css/solid.min.css">
+  <style type="text/css">
+    /* Reglas de estilo base */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    /* Tema CSS de la plantilla */
+    <%= helpers.getThemeCSS(theme) %>
+    
+    /* CSS Grid layout CSS */
+    <%= helpers.getGridCSS(layout) %>
+    
+    /* Fuentes específcas de la plantilla y los widgets */
+    <% 
+    const customFonts = new Set();
+    widgets.forEach(w => {
+      if (w.config?.customFont) customFonts.add(w.config.customFont);
+    });
+    theme.fonts?.forEach(font => customFonts.add(font));
+    
+    customFonts.forEach(fontName => { %>
+      @font-face {
+        font-family: '<%= fontName %>';
+        src: url('<%= assetsBaseUrl %>/fonts/<%= fontName %>.woff2') format('woff2'),
+             url('<%= assetsBaseUrl %>/fonts/<%= fontName %>.woff') format('woff');
+      }
+    <%
+      });%>
+    
+    /* Reglas de estilo base de los widgets */
+    .widget {
+      padding: 20px;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Reglas de estilo widget queue */
+    .widget-queue {
+      gap: 15px;
+    }
+    
+    .queue-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+    
+    .queue-item {
+      display: flex;
+      align-items: center;
+      padding: 20px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary, var(--primary)));
+      color: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      animation: slideIn 0.5s ease-out;
+      transition: all 0.3s ease;
+      min-height: 80px;
+    }
+    
+    .queue-item.calling {
+      animation: pulse 1.5s infinite;
+      background: var(--accent);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      transform: scale(1.02);
+    }
+    
+    .queue-ticket {
+      font-size: 2.5em;
+      font-weight: bold;
+      margin-right: 30px;
+      padding-right: 30px;
+      border-right: 3px solid rgba(255,255,255,0.3);
+      min-width: 150px;
+    }
+    
+    .queue-content {
+      font-size: 1.8em;
+      flex: 1;
+    }
+    
+    /* Reglas de estilo widget clock */
+    .widget-clock {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    
+    .clock-display {
+      font-family: 'Courier New', monospace;
+    }
+    
+    .clock-display .time {
+      font-size: 3em;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+    
+    .clock-display .date {
+      font-size: 1.5em;
+      margin-top: 10px;
+      opacity: 0.8;
+    }
+    
+    /* Reglas de estilo widget logo */
+    .widget-logo {
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .widget-logo img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    
+    /* Reglas de estilo widget ticker */
+    .widget-ticker {
+      align-items: center;
+      background: var(--primary);
+      color: white;
+      border-radius: 5px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .ticker-wrapper {
+      overflow: hidden;
+      width: 100%;
+    }
+    
+    .ticker-content {
+      display: inline-block;
+      white-space: nowrap;
+      animation: scroll-left 30s linear infinite;
+      padding-left: 100%;
+    }
+    
+    /* Reglas de estilo widget info */
+    .widget-info {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: rgba(255,255,255,0.9);
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .info-content {
+      font-size: 1.2em;
+      line-height: 1.6;
+    }
+    
+    /* Animaciones */
+    @keyframes slideIn {
+      from {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1.02); }
+      50% { transform: scale(1.05); }
+    }
+    
+    @keyframes scroll-left {
+      from { transform: translateX(0); }
+      to { transform: translateX(-100%); }
+    }
+    
+    /* Reglas de estilo específicas según la orientación (portrait/landspcape) */
+    body.portrait .template-container {
+      /* Ajustes para modo peraltado */
+    }
+  </style>
+</head>
+<body class="<%= template.orientation %>">
+  <div class="template-container">
+    <% 
+    // Iterar áreas del layout y colocar el widget correspondiente en cada una
+    for (const [areaName, areaConfig] of Object.entries(layout.areas || {})) {
+      const areaWidgets = helpers.getWidgetsByArea(widgets, areaName);
+    %>
+      <div class="area area-<%= areaName %>" id="area-<%= areaName %>">
+        <% for (const widget of areaWidgets) { %>
+          <%- include('widgets/' + widget.type, { 
+            widget: widget, 
+            config: widget.config || {},
+            assetsBaseUrl: assetsBaseUrl 
+          }) %>
+        <% } %>
+      </div>
+    <% } %>
+  </div>
+
+  <script>
+    // Establecer conexión WebSocket
+    const ws = new WebSocket(`ws://${window.location.host.split(':')[0]}:<%= wsPort %>`);
+    const messageQueues = new Map();
+    const widgets = new Map();
+    
+    // Initializar datos de los widgets
+    <% for (const widget of widgets) { %>
+      widgets.set('<%= widget.id %>', {
+        type: '<%= widget.type %>',
+        channel: '<%= widget.channel || "main" %>',
+        config: <%- JSON.stringify(widget.config || {}) %>,
+        element: null
+      });
+    <% } %>
+    
+    // Manejador de página cargada
+    document.addEventListener('DOMContentLoaded', () => {
+      // Asociar cada widget con su elemento en el DOM
+      widgets.forEach((widget, id) => {
+        widget.element = document.getElementById('widget-' + id);
+      });
+      
+      // Arrancar widgets clock
+      startClocks();
+      
+      // Arrancar widgets ticker
+      initializeTickers();
+    });
+    
+    // Manejadores de eventos WebSocket
+    ws.onopen = () => {
+      console.log('Connected to display server');
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        handleMessage(data);
+      } catch (error) {
+        console.error('Error processing message:', error);
+      }
+    };
+    
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+    
+    ws.onclose = () => {
+      console.log('Connection lost, attempting reconnect...');
+      setTimeout(() => window.location.reload(), 5000);
+    };
+    
+    // Manejador de mensajes WebSocket
+    function handleMessage(data) {
+      switch (data.type) {
+        case 'message':
+          handleQueueMessage(data.payload);
+          break;
+        case 'retract':
+          handleRetraction(data.payload);
+          break;
+        case 'reload':
+          window.location.reload();
+          break;
+        case 'connected':
+          console.log('Connected as node:', data.nodeId);
+          break;
+      }
+    }
+
+    // Mensaje de llamada
+    function handleQueueMessage(message) {
+      const channel = message.channel || 'main';
+      
+      // Initializar cola de mensajes si es necesario
+      if (!messageQueues.has(channel)) {
+        messageQueues.set(channel, []);
+      }
+      
+      const queue = messageQueues.get(channel);
+      
+      // Check if message exists
+      const existingIndex = queue.findIndex(m => m.id === message.id);
+      if (existingIndex >= 0) {
+        queue[existingIndex] = message;
+      } else {
+        queue.push(message);
+      }
+      
+      // Actualizar widgets en el canal
+      widgets.forEach((widget) => {
+        if (widget.channel === channel) {
+          updateWidget(widget, queue);
+        }
+      });
+      
+      // Reproducir sonido de notificación
+      if (channel === 'main' && message.ticket) {
+        playNotificationSound();
+      }
+    }
+
+    // Retirada de mensaje
+    function handleRetraction(payload) {
+      messageQueues.forEach((queue, channel) => {
+        const index = queue.findIndex(m => m.id === payload.id);
+        if (index >= 0) {
+          queue.splice(index, 1);
+          
+          // Actualizar widgets en el canal
+          widgets.forEach((widget) => {
+            if (widget.channel === channel) {
+              updateWidget(widget, queue);
+            }
+          });
+        }
+      });
+    }
+
+    // Actualización de widget con el mensaje
+    function updateWidget(widget, messages) {
+      if (!widget.element) return;
+      
+      switch (widget.type) {
+        case 'queue':
+          updateQueueWidget(widget, messages);
+          break;
+        case 'ticker':
+          updateTickerWidget(widget, messages);
+          break;
+        case 'info':
+          updateInfoWidget(widget, messages);
+          break;
+      }
+    }
+    
+    function updateQueueWidget(widget, messages) {
+      const container = widget.element.querySelector('.queue-container');
+      if (!container) return;
+      
+      const maxVisible = widget.config.maxVisible || 5;
+      const showTicket = widget.config.showTicket !== false;
+      const showContent = widget.config.showContent !== false;
+      
+      const visibleMessages = messages.slice(-maxVisible).reverse();
+      
+      container.innerHTML = visibleMessages.map((msg, index) => `
+        <div class="queue-item ${index === 0 ? 'calling' : ''}" data-id="${msg.id}">
+          ${showTicket && msg.ticket ? 
+            `<span class="queue-ticket">${escapeHtml(msg.ticket)}</span>` : ''}
+          ${showContent && msg.content ? 
+            `<span class="queue-content">${escapeHtml(msg.content)}</span>` : ''}
+        </div>
+      `).join('');
+    }
+    
+    function updateTickerWidget(widget, messages) {
+      const content = widget.element.querySelector('.ticker-content');
+      if (!content) return;
+      
+      const texts = messages.map(m => m.content || '').filter(Boolean);
+      if (texts.length > 0) {
+        const currentText = content.textContent;
+        const newText = texts.join(' • ');
+        if (currentText !== newText) {
+          content.textContent = newText;
+        }
+      }
+    }
+    
+    function updateInfoWidget(widget, messages) {
+      const content = widget.element.querySelector('.info-content');
+      if (!content) return;
+      
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && lastMessage.content) {
+        content.innerHTML = escapeHtml(lastMessage.content);
+      }
+    }
+    
+    function startClocks() {
+      const updateClocks = () => {
+        widgets.forEach((widget) => {
+          if (widget.type === 'clock' && widget.element) {
+            updateClock(widget);
+          }
+        });
+      };
+      
+      updateClocks();
+      setInterval(updateClocks, 1000);
+    }
+    
+    function updateClock(widget) {
+      const now = new Date();
+      const timeElement = widget.element.querySelector('.time');
+      const dateElement = widget.element.querySelector('.date');
+      
+      if (timeElement) {
+        const timeFormat = widget.config.timeFormat || 'HH:mm:ss';
+        
+        // Componentes de hora
+        const hours24 = String(now.getHours()).padStart(2, '0');
+        const hours12 = String(now.getHours() % 12 || 12).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const ampm = (now.getHours() >= 12) ? 'PM' : 'AM';
+        
+        // Aplicar formato
+        let timeStr = timeFormat
+          .replace('HH', hours24)
+          .replace('hh', hours12)
+          .replace('mm', minutes)
+          .replace('ss', seconds)
+          .replace('A', ampm)
+          .replace('a', ampm.toLowerCase());
+          
+        timeElement.textContent = timeStr;
+      }
+      
+      if (dateElement) {
+        const dateFormat = widget.config.dateFormat || 'long';
+        
+        if (dateFormat === 'long') {
+          // Texto localizado para el formato 'long'
+          dateElement.textContent = now.toLocaleDateString('es-ES', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+        } else {
+          // Componentes de fecha
+          const day = String(now.getDate()).padStart(2, '0');
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const year = String(now.getFullYear());
+          const monthName = now.toLocaleDateString('es-ES', { month: 'long' });
+          
+          // Aplicar formato
+          let dateStr = dateFormat
+            .replace('DD', day)
+            .replace('MM', month)
+            .replace('YYYY', year)
+            .replace('YY', String(year).slice(-2))
+            .replace('MMM', monthName);
+            
+          dateElement.textContent = dateStr;
+        }
+      }
+    }
+    
+    function initializeTickers() {
+      // Reiniciar animaciones periódicamente en widgets ticker
+      setInterval(() => {
+        widgets.forEach((widget) => {
+          if (widget.type === 'ticker' && widget.element) {
+            const content = widget.element.querySelector('.ticker-content');
+            if (content) {
+              content.style.animation = 'none';
+              setTimeout(() => {
+                content.style.animation = '';
+              }, 10);
+            }
+          }
+        });
+      }, 30000);
+    }
+    
+    function playNotificationSound() {
+      // Señal acústica básica, un bip
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

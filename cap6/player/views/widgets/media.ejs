@@ -1,0 +1,32 @@
+<%#
+SPPTZE - Sistema de Presentación para Pantallas de Turno en Zonas de Espera
+TFE Grado en Ingeniería Informática - Universidad Internacional de La Rioja
+Copyright (c) 2025 Francisco José Aquino García
+Licensed under the MIT License - see LICENSE file for details
+%>
+<!-- cap6/player/views/widgets/media.ejs --><%#
+  Widget media - Muestra imágenes o videos
+
+  Configuración (widget.config):
+    - type: string - 'image' o 'video'
+    - src: string - Nombre archivo en carpeta assets
+    - objectFit: string - CSS object-fit ('cover', 'contain', 'fill')
+    - alt: string - Texto alternativo para imágenes
+    - mimeType: string - Tipo MIME para video
+
+  Tema (widget.theme):
+    - colors.background: string - Color de fondo del panel
+%>
+<div class="widget widget-media" id="widget-<%= widget.id %>">
+  <% if (config.type === 'video') { %>
+    <video autoplay loop muted style="width: 100%; height: 100%; object-fit: <%= config.objectFit || 'cover' %>;">
+      <source src="<%= assetsBaseUrl %>/media/<%= config.src %>" type="<%= config.mimeType || 'video/mp4' %>">
+    </video>
+  <% } else if (config.type === 'image') { %>
+    <img src="<%= assetsBaseUrl %>/images/<%= config.src %>" 
+         alt="<%= config.alt || '' %>"
+         style="width: 100%; height: 100%; object-fit: <%= config.objectFit || 'contain' %>;">
+  <% } else { %>
+    <div>Media type not supported: <%= config.type %></div>
+  <% } %>
+</div>

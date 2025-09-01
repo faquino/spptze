@@ -1,0 +1,28 @@
+<%#
+SPPTZE - Sistema de Presentación para Pantallas de Turno en Zonas de Espera
+TFE Grado en Ingeniería Informática - Universidad Internacional de La Rioja
+Copyright (c) 2025 Francisco José Aquino García
+Licensed under the MIT License - see LICENSE file for details
+%>
+<!-- cap6/player/views/widgets/weather.ejs --><%#
+  Widget weather - Muestra información meteorológica
+  
+  Configuración (widget.config):
+    - location: string - Nombre de ubicación a mostrar
+    - units: string - 'celsius' (°C) o 'fahrenheit' (°F)
+  
+  Tema (widget.theme):
+    - colors.text: string - Color del texto
+    - typography.fontSize: string - Tamaño de fuente
+  
+  Canal: Debería recibir actualizaciones de datos meteorológicos
+%>
+<div class="widget widget-weather" id="widget-<%= widget.id %>" data-channel="<%= widget.channel || 'weather' %>">
+  <div class="weather-display">
+    <div class="weather-icon">🌤️</div>
+    <div class="weather-temp">--°C</div>
+<% if (config.location) { %>
+    <div class="weather-location"><%= config.location %></div>
+<% } %>
+  </div>
+</div>

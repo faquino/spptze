@@ -1,0 +1,26 @@
+<%#
+SPPTZE - Sistema de Presentación para Pantallas de Turno en Zonas de Espera
+TFE Grado en Ingeniería Informática - Universidad Internacional de La Rioja
+Copyright (c) 2025 Francisco José Aquino García
+Licensed under the MIT License - see LICENSE file for details
+%>
+<!-- cap6/player/views/widgets/info.ejs --><%#
+  Widget info - Panel de información actualizable
+
+  Configuración (widget.config):
+    - defaultText: string - Texto por defecto (sin mensajes)
+    - alignment: string - Alineación del texto (center, left, right)
+
+  Tema (widget.theme):
+    - colors.background: string - Color de fondo del panel
+    - colors.text: string - Color del texto
+    - colors.borderColor: string - Color del borde
+    - typography.fontSize: string - Tamaño de fuente
+
+  Canal: Puede recibir mensajes de información para mostrar
+%>
+<div class="widget widget-info" id="widget-<%= widget.id %>" data-channel="<%= widget.channel || 'info' %>">
+  <div class="info-content">
+    <%= config.defaultText || '' %>
+  </div>
+</div>

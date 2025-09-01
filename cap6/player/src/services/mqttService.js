@@ -13,6 +13,8 @@ const mqtt = require('mqtt');
 const EventEmitter = require('events');
 const MessageFilter = require('./messageFilter');
 
+const TEMPLATE_TOPIC_BASE = 'spptze/system/updates/template/';
+
 // Devuelve true si value es una función
 function isFun(value) {
   return (typeof value === 'function');
@@ -260,6 +262,8 @@ class MQTTService extends EventEmitter {
             if (filterResult.ack) this.publishAck(payload);
           }
         }
+      } else if (topic.startsWith(TEMPLATE_TOPIC_BASE)) {
+        await this.handleMessageTemplate(payload);
       } else {
         throw new Error(`No handler for topic '${topic}'`);
       }
@@ -278,9 +282,18 @@ class MQTTService extends EventEmitter {
       this.unsubscribe(this.msgSubs.pop());
     }
     for (const topic of payload.subs) {
-      // Suscribirse a topics indicados desde el servidor central
+      // Suscribirse a topics relacionados con ubicaciones y puntos de servicio indicados desde el servidor central
       this.subscribe(topic);
     }
+    if (payload.template) {
+      // Si en el mensaje de configuración hay un plantilla, suscribirse a su topic específico para recibir actualizaciones
+      this.subscribe(`${TEMPLATE_TOPIC_BASE}${payload.template.id}`);
+      await this.handleMessageTemplate(payload.template);
+    }
+  }
+
+  async handleMessageTemplate(template) {
+    this.emit('spptze:player:mqtt:template', template);
   }
 
   /**

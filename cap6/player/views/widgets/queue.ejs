@@ -1,0 +1,28 @@
+<%#
+SPPTZE - Sistema de Presentación para Pantallas de Turno en Zonas de Espera
+TFE Grado en Ingeniería Informática - Universidad Internacional de La Rioja
+Copyright (c) 2025 Francisco José Aquino García
+Licensed under the MIT License - see LICENSE file for details
+%>
+<!-- cap6/player/views/widgets/queue.ejs --><%#
+  Widget queue - Muestra lista de elementos en cola (turnos/llamadas)
+
+  Configuración (widget.config):
+    - maxVisible: number - Máximo de elementos a mostrar (defecto: 5)
+    - showTicket: boolean - Mostrar número de turno (defecto: true)
+    - showContent: boolean - Mostrar contenido/destino (defecto: true)
+    - striped: boolean - Activar franjas alternadas (defecto: false)
+    - stripeColor: string - Color para filas alternadas (defecto: rgba(255,255,255,0.1))
+    - animationDuration: number - Duración animación en ms (defecto: 500)
+
+  Tema (widget.theme):
+    - colors.background: string - Color de fondo para elementos
+    - colors.text: string - Color del texto
+    - colors.accent: string - Color para elemento activo/llamando
+    - typography.fontSize: string - Tamaño de fuente (ej: '1.2em', '20px')
+%>
+<div class="widget widget-queue" id="widget-<%= widget.id %>" data-channel="<%= widget.channel || 'main' %>">
+  <div class="queue-container">
+    <!-- Queue items will be inserted dynamically via JavaScript -->
+  </div>
+</div>

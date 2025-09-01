@@ -1,0 +1,28 @@
+<%#
+SPPTZE - Sistema de Presentación para Pantallas de Turno en Zonas de Espera
+TFE Grado en Ingeniería Informática - Universidad Internacional de La Rioja
+Copyright (c) 2025 Francisco José Aquino García
+Licensed under the MIT License - see LICENSE file for details
+%>
+<!-- cap6/player/views/widgets/ticker.ejs --><%#
+  Widget ticker - Texto desplazándose horizontalmente
+
+  Configuración (widget.config):
+    - initialText: string - Texto inicial a mostrar
+    - scrollSpeed: number - Velocidad desplazamiento píxeles/segundo (defecto: 50)
+    - separator: string - Secuencia de caracteres a insertar entre mensajes
+
+  Tema (widget.theme):
+    - colors.background: string - Color de fondo
+    - colors.text: string - Color del texto
+    - typography.fontSize: string - Tamaño de fuente
+
+  Canal: Puede recibir mensajes de texto para añadir al ticker
+%>
+<div class="widget widget-ticker" id="widget-<%= widget.id %>" data-channel="<%= widget.channel || 'info' %>">
+  <div class="ticker-wrapper">
+    <div class="ticker-content">
+      <%= config.initialText || 'Bienvenidos • Welcome • Bienvenue' %>
+    </div>
+  </div>
+</div>
