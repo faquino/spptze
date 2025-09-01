@@ -9,6 +9,7 @@
 // SPPTZE - Servidor central: ORM + API + Interfaces web
 // cap6/server/src/server.js
 // =============================================================
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -22,6 +23,7 @@ const { testConnection, syncDatabase } = require('./config/database');
 const MQTTService = require('./services/mqttService');
 const { swaggerOptions } = require('./config/swagger.js');
 const ttsService = process.env.SPEACHES_URL ? require('./services/ttsService') : null;
+const assetsDir = process.env.ASSETS_DIR || path.join(__dirname, '..', 'public');
 
 const app = express();
 
@@ -40,11 +42,16 @@ app.get('/api/v1/openapi.json', (req, res) => {
 
 // MIDDLEWARE
 // =============================================================
-app.use(helmet({ contentSecurityPolicy: false })); //TODO cambiar en producción
+const node_env = process.env.NODE_ENV || 'production';
+app.use(helmet({ contentSecurityPolicy: (node_env == 'development') ? false : true,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+ }));
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-// Servir contenido estático en /public
-app.use(express.static('public'));
+// Para servir los assets de las plantillas de presentación
+app.use('/assets',
+        cors({ origin: '*', methods: ['GET'], credentials: false }),
+        express.static(assetsDir));
 
 // Logging
 app.use((req, res, next) => {
@@ -110,6 +117,11 @@ async function initializeServices() {
     // Sincronizar esquema
     await syncDatabase(false);
     
+    // Servicio TTS (Speaches)
+    if (ttsService) {
+      await ttsService.initialize();
+    }
+    
     // Conexión MQTT
     const mqttBrokerUrl = process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883';
     const mqttOpts = {};
@@ -119,10 +131,20 @@ async function initializeServices() {
     }
     await MQTTService.connect(mqttBrokerUrl, mqttOpts);
 
-    // Servicio TTS (Speaches)
-    if (ttsService) {
-      await ttsService.initialize();
-    }
+    const templateService = require('./services/templateService');
+    templateService.initialize();
+    templateService.on('spptze:server:template:update', async (template) => {
+      // Publicar al topic específico de la plantilla. Los nodos que la usan se habrán suscrito a dicho topic
+      const topic = `spptze/system/updates/template/${templateId}`;
+      await this.mqttService.publish(topic, JSON.stringify(payload));
+      console.log(`Published template ${templateId} update to topic ${topic}`);
+    });
+
+    MQTTService.on('spptze:server:mqtt:nodeup', async (nodeSerial, nodeConfig, templates) => {
+      const template = (templates?.length > 0) ? templates[0] : await templateService.getDefaultTemplate();
+      nodeConfig.template = templateService.generateTemplatePayload(template);
+      MQTTService.publishNodeConfig(nodeSerial, nodeConfig);
+    });
 
     console.log('Servicios iniciados correctamente');
   } catch (error) {
@@ -161,12 +183,13 @@ async function startServer() {
     await initializeServices();
 
     const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
+    const HOST = process.env.HOST || 'localhost';
+    app.listen(PORT, HOST, () => {
       console.log('SPPTZE Server started successfully');
       console.log('-'.repeat(60));
-      console.log(`API Base:          http://localhost:${PORT}/api/v1`);
-      console.log(`API Documentación: http://localhost:${PORT}/api/v1/docs`);
-      console.log(`OpenAPI Spec.:     http://localhost:${PORT}/api/v1/openapi.json`);
+      console.log(`API Base:          http://${HOST}:${PORT}/api/v1`);
+      console.log(`API Documentación: http://${HOST}:${PORT}/api/v1/docs`);
+      console.log(`OpenAPI Spec.:     http://${HOST}:${PORT}/api/v1/openapi.json`);
       console.log('-'.repeat(60));
     });
 

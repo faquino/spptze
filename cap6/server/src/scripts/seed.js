@@ -36,41 +36,178 @@ const {
 
 // INSERCIÓN DE DATOS DE EJEMPLO
 // =============================================================
-// TODO bulkCreate no ejecuta validaciones ni hooks. Añadir parámetro {validate: true, individualHooks: true }
+// TODO: OJO bulkCreate no ejecuta validaciones ni hooks. Añadir parámetro {validate: true, individualHooks: true }
 async function seedDatabase() {
   console.log('Insertando datos de ejemplo...');
 
   try {
+
     // Plantillas de presentación
-    await DisplayTemplate.bulkCreate([
-      {
-        id: 'TPL_HOSP_DEF',
-        name: 'Plantilla Hospital Estándar',
-        description: 'Tema visual estándar para entornos hospitalarios',
-        config: {
-          channels: {
-            calls: { zone: 'main', max_messages: 8, css_class: 'call-display' },
-            emergency: { zone: 'overlay', max_messages: 1, css_class: 'emergency-alert' },
-            info: { zone: 'footer', max_messages: 3, css_class: 'info-ticker' }
+    const defaultTemplate = await DisplayTemplate.create({
+      id: 'TPL_HOSP_DEF',
+      name: 'Plantilla Principal',
+      description: 'Plantilla por defecto del sistema',
+      orientation: 'landscape',
+      targetSize: 43,
+      isActive: true,
+      definition: {
+        layout: {
+          columns: 12, rows: 8, gap: '10px',
+          areas: {
+            header: { row: [1, 1], column: [1, 12] },
+            queue: { row: [2, 6], column: [1, 8] },
+            info: { row: [2, 6], column: [9, 12] },
+            ticker: { row: [7, 7], column: [1, 12] },
+            footer: { row: [8, 8], column: [1, 12] }
+          }
+        },
+        widgets: [
+          {
+            id: 'hospital-logo', type: 'logo', area: 'header',
+            config: {
+              src: 'logo-hospital.png',
+              height: '80px',
+              alignment: 'center'
+            }
           },
-          layout: 'standard',
-          colors: { primary: '#2563eb', secondary: '#64748b' }
-        }
-      },
-      {
-        id: 'TPL_CARDIO',
-        name: 'Plantilla Cardiología',
-        description: 'Tema personalizado para el servicio de cardiología',
-        config: {
-          channels: {
-            calls: { zone: 'main', max_messages: 6, css_class: 'cardio-calls' },
-            emergency: { zone: 'overlay', max_messages: 1, css_class: 'cardio-emergency' }
+          {
+            id: 'main-queue', type: 'queue', area: 'queue', channel: 'main',
+            config: {
+              showTicket: true,
+              showContent: true,
+              animationDuration: 500,
+              striped: true,  // Enable zebra striping
+              stripeColor: 'rgba(0,0,0,0.03)'  // Light stripe
+            },
+            theme: {
+              typography: {
+                fontSize: '1.1em'  // Slightly larger text
+              }
+            }
           },
-          layout: 'compact',
-          colors: { primary: '#dc2626', secondary: '#991b1b' }
+          {
+            id: 'info-panel', type: 'info', area: 'info', channel: 'info',
+            config: {
+              defaultText: 'Bienvenidos al Hospital Universitario',
+              fontSize: '1.2em'
+            }
+          },
+          {
+            id: 'news-ticker', type: 'ticker', area: 'ticker', channel: 'news',
+            config: {
+              initialText: 'Mantenga la distancia de seguridad • Use mascarilla en zonas comunes • Respete los turnos de espera',
+              scrollSpeed: 50
+            }
+          },
+          {
+            id: 'datetime-clock', type: 'clock', area: 'footer',
+            config: {
+              timeFormat: 'HH:mm',  // 24h format without seconds
+              dateFormat: 'DD/MM/YYYY'  // European date format
+            },
+            theme: {
+              typography: {
+                fontSize: '1.2em'  // Larger clock text
+              }
+            }
+          }
+        ],
+        theme: {
+          colors: {
+            primary: '#003366',
+            secondary: '#0066cc',
+            background: '#f5f5f5',
+            text: '#333333',
+            accent: '#ff6600'
+          },
+          typography: {
+            fontFamily: 'Arial, Helvetica, sans-serif',
+            baseFontSize: '18px',
+            headingFont: 'Arial Black, sans-serif'
+          },
+          animations: {
+            queueTransition: 'slide',
+            tickerSpeed: 'normal'
+          }
         }
       }
-    ]);
+    });
+    
+    const urgenciasTemplate = await DisplayTemplate.create({
+      id: 'TPL_CARDIO',
+      name: 'Plantilla Urgencias',
+      description: 'Plantilla para el área de urgencias con prioridad visual',
+      orientation: 'landscape',
+      targetSize: 50,
+      isActive: true,
+      definition: {
+        layout: {
+          columns: 12, rows: 8, gap: '15px',
+          areas: {
+            header: { row: [1, 1], column: [1, 12] },
+            priority: { row: [2, 3], column: [1, 12] },
+            queue: { row: [4, 7], column: [1, 12] },
+            footer: { row: [8, 8], column: [1, 12] }
+          }
+        },
+        widgets: [
+          {
+            id: 'urgencias-header', type: 'logo', area: 'header',
+            config: {
+              src: 'logo-hospital.png',
+              height: '60px'
+            }
+          },
+          {
+            id: 'priority-queue', type: 'queue', area: 'priority', channel: 'priority',
+            config: {
+              showTicket: true,
+              showContent: true,
+              animationDuration: 300
+            },
+            theme: {
+              colors: {
+                background: '#ff3333',  // Red background for priority
+                text: '#ffffff',
+                accent: '#ffff00'  // Yellow for calling
+              },
+              typography: {
+                fontSize: '1.3em',  // Larger for visibility
+                fontWeight: 'bold'
+              }
+            }
+          },
+          {
+            id: 'normal-queue', type: 'queue', area: 'queue', channel: 'main',
+            config: {
+              maxVisible: 4,
+              showTicket: true,
+              showContent: true
+            }
+          },
+          {
+            id: 'urgencias-info', type: 'ticker', area: 'footer', channel: 'emergency',
+            config: {
+              initialText: 'URGENCIAS 24H • Respete la prioridad del triaje',
+              scrollSpeed: 40
+            }
+          }
+        ],
+        theme: {
+          colors: {
+            primary: '#cc0000',
+            secondary: '#ff6666',
+            background: '#ffffff',
+            text: '#000000',
+            accent: '#ffcc00'
+          },
+          typography: {
+            fontFamily: 'Arial, sans-serif',
+            baseFontSize: '20px'
+          }
+        }
+      }
+    });
 
     // Sistemas externos
     await ExternalSystem.bulkCreate([

@@ -158,11 +158,11 @@ class MQTTService extends EventEmitter {
       const payload = JSON.parse(message.toString());
       
       if (topic === 'spptze/system/nodeup') {
-        await this.handleNodeUp(topic, payload);
+        await this.handleNodeUp(payload);
       } else if (topic === 'spptze/system/heartbeat') {
-        await this.handleNodeHeartbeat(topic, payload);
+        await this.handleNodeHeartbeat(payload);
       } else if (topic === 'spptze/messages/ack') {
-        await this.handleMessageAck(topic, payload);
+        await this.handleMessageAck(payload);
       } else {
         throw new Error(`No handler for topic '${topic}'`);
       }
@@ -175,31 +175,31 @@ class MQTTService extends EventEmitter {
   }
 
   /**
-   * Manejar evento de nodo conectándose
+   * Manejar evento de nodo conectándose.
    */
-  async handleNodeUp(topic, payload) {
+  async handleNodeUp(payload) {
     console.log(`MQTT: Node ${payload.serialNumber} coming up`);
-    
+
     try {
       // Obtener el nodo por el número de serie
       const node = await nodeManager.getNodeBySN(payload.serialNumber);
-      
+
       // Obtener suscripciones para el nodo
       const subscriptions = await nodeManager.getNodeSubscriptions(node);
-      
-      // Enviar configuración de suscripciones al nodo
-      const response = {
+      const templates = await node.getEffectiveTemplates();
+
+      const nodeConfig = {
         nodeId: node.id,
         heartbeatInterval: process.env.HEARTBEAT_INTERVAL || 60,
         subs: subscriptions
       };
-      
-      await this.publish(`spptze/system/nodes/${payload.serialNumber}`, response);
-      
-      // Guardar suscripciones en memoria para... tracking?
+
+      this.emit('spptze:server:mqtt:nodeup', payload.serialNumber, nodeConfig, templates);
+
+      // Guardar suscripciones en memoria para... tracking/caching? (TODO)
       this.nodeSubscriptions.set(node.id, subscriptions);
-      
-      console.log(`MQTT: Sent ${subscriptions.length} subscriptions to ${payload.serialNumber}`);
+
+
     } catch (error) {
       console.error(`MQTT: Error configuring node ${payload.serialNumber}:`, error);
     }
@@ -210,8 +210,8 @@ class MQTTService extends EventEmitter {
    * @param {string} topic 
    * @param {object} payload 
    */
-  async handleNodeHeartbeat(topic, payload) {
-    console.log('MQTT: Hearteat from node: ', payload.nodeId || payload.serialNumber);
+  async handleNodeHeartbeat(payload) {
+    console.log('MQTT: Hearteat from node:', payload.nodeId || payload.serialNumber);
     if (payload?.serialNumber)
       await nodeManager.getNodeBySN(payload.serialNumber);
     else
@@ -223,7 +223,7 @@ class MQTTService extends EventEmitter {
   /**
    * Manejar ACK de un mensaje
    */
-  async handleMessageAck(topic, payload) {
+  async handleMessageAck(payload) {
     // Hay que actualizar la tupla correspondiente en MessageDelivery (deliveredAt, displayedAt y acknowledgedAt),
     // además del campo lastSeen en DisplayNode
     console.log(`MQTT: ACK from ${payload.nodeId}`);
@@ -236,9 +236,20 @@ class MQTTService extends EventEmitter {
   }
 
   /**
+   * Publicar mensaje de configuración de nodo
+   * @param {string} nodeSerial - El número de serie del nodo se usa para componer el topic 
+   * @param {Object} nodeConfig 
+   */
+  async publishNodeConfig(nodeSerial, nodeConfig) {
+    await this.publish(`spptze/system/nodes/${nodeSerial}`, nodeConfig);
+    console.log(`MQTT: Sent ${nodeConfig.subs.length} subscriptions to ${nodeSerial}`);
+  }
+
+  /**
    * Publicar mensaje de llamada de turno
    * @param {string} topic 
    * @param {Object} message 
+   * @param {Object} ttsResult
    */
   async publishMessage(topic, message, ttsResult) {
     const payload = {
