@@ -9,7 +9,7 @@
 // SPPTZE - GESTOR DE NODOS
 // cap6/server/src/services/nodeManager.js
 // =============================================================
-const { DisplayNode, Location, MessageDelivery, ServicePoint } = require('../models');
+const { DisplayNode, Location, MessageDelivery } = require('../models');
 
 class NodeManager {
 
