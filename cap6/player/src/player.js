@@ -75,7 +75,6 @@ const getHeartBeatInfoFun = (socketServer, cecControl) => {
 const defIfInfo = getDefaultInterfaceInfo();
 console.log(`SPPTZE-player running - Version: ${pkgInfoVersion}; CWD: ${process.cwd()}; MAC: ${defIfInfo.mac}`);
 
-// Por no incluir aún un template engine via npm (¿ejs, handlebars, pug, etc.?)
 function getSystemInfo() {
   return {
     hostname: os.hostname(),
