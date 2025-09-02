@@ -31,7 +31,7 @@ class TemplateService  extends EventEmitter {
   }
 
   /**
-   * Obtener plantilla por defecto o la plantilla de reserva hardcodeada
+   * Obtener plantilla por defecto del sistema o la plantilla de reserva hardcodeada
    */
   async getDefaultTemplate() {
     // Intentar obtener la plantilla por defecto configurada
@@ -82,6 +82,13 @@ class TemplateService  extends EventEmitter {
       },
       updatedAt: new Date()
     };
+  }
+
+  async updateTemplate(templateId, templateData) {
+    const template = await DisplayTemplate.findByPk(templateId);
+    if (!template) throw new Error(`Template ${templateId} not found`);
+    templateData.isDirty = true;
+    await template.update(templateData);
   }
 
   /**
@@ -167,7 +174,7 @@ class TemplateService  extends EventEmitter {
       orientation: source.orientation,
       targetSize: source.targetSize,
       definition: JSON.parse(JSON.stringify(source.definition)), // 'Deep copy'
-      isActive: true
+      isActive: source.isActive
     });
     
     return newTemplate;
@@ -250,6 +257,7 @@ class TemplateService  extends EventEmitter {
     if (!template) throw new Error(`Template ${templateId} not found`);
     
     template.updatedAt = new Date();
+    template.isDirty = false;
     await template.save();
     
     console.log(`Template ${templateId} marked as modified`);

@@ -257,6 +257,7 @@ const Location = (sequelize) => {
     }
   });
 
+  //TODO: Debería tenerse en cuenta DisplayTemplate.isActive
   model.prototype.getEffectiveTemplate = async function () {
     if (this.templateId) return await sequelize.models.DisplayTemplate.findByPk(this.templateId);
     if (this.parentId) {
@@ -347,22 +348,22 @@ const DisplayNode = (sequelize) => {
     ]
   });
 
-  // Se devuelve un array con las plantillas más específicas (a mayor profundidad en la jerarquía). El código cliente
-  //deberá tomar la decisión correspondiente si la longitud de dicho array > 1
+  // Devuelve un array con las plantillas más específicas (a mayor profundidad en la jerarquía) aplicables al nodo
+  // según sus ubicaciones asociadas. El código cliente puede decidir qué hacer si la longitud del array > 1,
+  // aunque lo más habitual será usar el primer elemento.
+  // TODO Consideraciones relativas a DisplayTemplate.isActive
   model.prototype.getEffectiveTemplates = async function () {
-    // Si hay template override se usa esa [plantilla]
-    if (this.templateOverrideId) return [await sequelize.models.DisplayTemplate.findByPk(this.templateOverrideId)];
+    if (this.templateOverrideId) // Si hay template override se usa esa plantilla
+      return [
+        await sequelize.models.DisplayTemplate.findByPk(this.templateOverrideId)];
 
     // En otro caso, hay que buscar la plantilla de ubicación más específica
     const locations = await this.getLocations({
-      include: [
-        { model: sequelize.models.DisplayTemplate, as: 'displayTemplate' }
-      ]
+      include: [ { model: sequelize.models.DisplayTemplate, as: 'displayTemplate' } ]
     });
 
-    let highestDepth = -1;
-    const templatesAtHighestDepth = [];
-
+    let deepest = -1;
+    const deepestTemplates = [];
     // Calcular profundidad de cada ubicación para encontrar las más específicas
     for (const location of locations) {
       let template = null;
@@ -370,22 +371,20 @@ const DisplayNode = (sequelize) => {
         template = location.displayTemplate || await location.getEffectiveTemplate();
       } catch (error) {   }
       if (template) {
-        const depth = await location.getDepth();
-        if (depth > highestDepth) {
-          // Nueva profundidad más alta, reiniciar array
-          highestDepth = depth;
-          templatesAtHighestDepth.length = 0;
-          templatesAtHighestDepth.push(template);
-        } else if (depth === highestDepth) {
+        const locationDepth = await location.getDepth();
+        if (locationDepth > deepest) {
+          // Nueva profundidad más... profunda, reiniciar array
+          deepest = locationDepth;
+          deepestTemplates.length = 0;
+          deepestTemplates.push(template);
+        } else if (locationDepth === deepest) {
           // Misma profundidad, añadir al array si no está ya
-          const templateExists = templatesAtHighestDepth.some(t => t.id === template.id);
-          if (!templateExists) {
-            templatesAtHighestDepth.push(template);
-          }
+          const templateExists = deepestTemplates.some(t => t.id === template.id);
+          if (!templateExists) deepestTemplates.push(template);
         }
       }
     }
-    return templatesAtHighestDepth;
+    return deepestTemplates;
   };
   return model;
 };
@@ -669,6 +668,9 @@ const DisplayTemplate = (sequelize) => {
       validate: { min: 32, max: 100 },
       comment: 'Tamaño mínimo recomendado para el televisor (diagonal en pulgadas)'
     },
+    isDirty: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,
+      comment: 'Recordatorio de que se ha modificado algún aspecto y es necesario redistribuir la plantilla.'
+    },
     updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, allowNull: false },
     definition: { type: DataTypes.JSON, allowNull: false, defaultValue: {},
       validate: {
@@ -697,8 +699,8 @@ const DisplayTemplate = (sequelize) => {
       },
       comment: 'JSON que define tema, layout, areas, widgets etc.'
     },
-    isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,
-      comment: 'Decide si '
+    isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true,
+      comment: 'Decide si se tiene en cuenta a la hora de determinar la plantilla efectiva para una ubicación'
     }
   }, {
     tableName: 'display_templates',
