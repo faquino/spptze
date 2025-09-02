@@ -57,26 +57,26 @@ class MessageController {
   async createMessage(req, res) {
     try {
       const { ticket, content, target, targetType, priority = 1, channel = 'calls', externalRef, tts } = req.body;
-      
+
       // Crear mensaje
       const messageData = {
         id: req.requestId,
         ticket,
         content,
         priority,
-        channel,
+        channel: channel || req.system.defaultChannel,
         sourceSystemId: req.system.id,
         externalRef,
         expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 minutos
       };
-  
+
       let effectiveTargetType = targetType;
       let effectiveTargetId = null;
       // Si la petición no incluye el tipo de destino, usar el valor por defecto del origen
       if (!targetType) {
         effectiveTargetType = (req.system.defaultTargetType == 'S') ? 'service_point' : 'location';
       }
-  
+
       // Asignar target según tipo
       if (effectiveTargetType === 'service_point') {
         // Los sistemas externos se refieren a los puntos de servicio por su externalId
@@ -87,7 +87,7 @@ class MessageController {
         messageData.targetLocationId = target;
         effectiveTargetId = messageData.targetLocationId;
       }
-      
+
       // Guardar mensaje en BD
       const message = await Message.create(messageData);
 
@@ -101,28 +101,28 @@ class MessageController {
       // Resolver el topic a usar para publicar el mensaje y sus nodos destino
       const topic = await TopicResolver.buildTopic(effectiveTargetType, effectiveTargetId);
       const targetNodes = await TopicResolver.getTargetNodes(message);
-      
+
       // Crear los registros de entrega
       const deliveries = targetNodes.map(node => ({
         messageId: message.id,
         nodeId: node.id
       }));
-      
+
       if (deliveries.length > 0) {
         await MessageDelivery.bulkCreate(deliveries);
         const ttsResult = await ttsPromise;
         MQTTService.publishMessage(topic, message, ttsResult);
       }
-      
+
       console.log(`New message: ${message.id} (${targetNodes.length} nodes)`);
-      
+
       res.status(201).json({ 
         id: message.id, 
         status: 'sent',
         targetNodes: targetNodes.length,
         timestamp: message.createdAt
       });
-  
+
     } catch (error) {
       console.error('Error creating message:', error);
       res.status(500).json({ error: 'Internal server error' });

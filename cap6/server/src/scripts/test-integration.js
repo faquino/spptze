@@ -102,7 +102,7 @@ async function testAPIIntegration() {
     if (!system) throw new Error('No hay sistemas activos en BD');
     
     apiKey = system.apiKey;
-    console.log(`API key obtenida: ${apiKey.substring(0, 8)}...`);
+    console.log(`API key obtenida: ${apiKey.substring(0, 8)} (Sistema: ${system.id})`);
     
     // 2. Probar autenticación
     console.log('\n·Probando autenticación...');
@@ -117,6 +117,7 @@ async function testAPIIntegration() {
       content: 'C-27',
       target: 'CARDIO_MAÑANA_DRG',
       targetType: 'service_point',
+      channel: 'calls',
       externalRef: 'INTEGRATION_TEST'
     };
     

@@ -95,7 +95,7 @@ const getEntityDepth = async (model, entity, parentFieldName = null) => {
 
 
 // Canales de mensaje válidos
-// TODO: migrar a nueva tabla 'channels' vinculada con ExternalSystem, DisplayTemplate y Message
+// TODO: migrar a nueva tabla 'channels' vinculada con ExternalSystem, DisplayTemplate y Message?
 const VALID_MESSAGE_CHANNELS = ['calls', 'info', 'emergency', 'announcements'];
 
 // Tipos de widgets válidos en las plantillas de visualización
