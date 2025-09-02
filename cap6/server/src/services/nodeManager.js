@@ -88,16 +88,6 @@ class NodeManager {
   }
 
   /**
-   * Actualizar la última vez visto de un nodo
-   */
-  async updateLastSeen(nodeId) {
-    await DisplayNode.update(
-      { lastSeen: new Date() },
-      { where: { id: nodeId } }
-    );
-  }
-
-  /**
    * Obtener información completa de un nodo
    */
   async getNodeInfo(nodeId) {

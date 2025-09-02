@@ -1,13 +1,13 @@
 {
   "name": "spptze-server",
   "version": "1.0.0",
-  "description": "SPPTZE - Servidor central con API REST + Sequelize ORM + cliente MQTT",
+  "description": "SPPTZE - Servidor central con API REST + Sequelize ORM + cliente MQTT + TTS + plantillas",
   "main": "./src/server.js",
   "scripts": {
     "start": "node --env-file=.env ./src/server.js",
     "dev": "nodemon --env-file=.env ./src/server.js",
-    "seed": "node --env-file=.env ./src/scripts/seed.js",
     "test": "node --env-file=.env ./src/scripts/test-integration.js",
+    "db:seed": "node --env-file=.env ./src/scripts/seed.js",
     "db:install-driver": "node --env-file=.env ./src/scripts/install-db-driver.js",
     "db:generate-data-dict": "node ./src/scripts/generate-data-dict.js"
   },

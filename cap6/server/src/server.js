@@ -43,9 +43,11 @@ app.get('/api/v1/openapi.json', (req, res) => {
 // MIDDLEWARE
 // =============================================================
 const node_env = process.env.NODE_ENV || 'production';
-app.use(helmet({ contentSecurityPolicy: (node_env == 'development') ? false : true,
+ // Para que Helmet no impida CORS, ya que el servidor central hace de CDN de assets de plantillas
+ app.use(helmet({
+  contentSecurityPolicy: (node_env == 'development') ? false : true,
   crossOriginResourcePolicy: { policy: "cross-origin" }
- }));
+}));
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 // Para servir los assets de las plantillas de presentación
