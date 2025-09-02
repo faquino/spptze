@@ -54,11 +54,11 @@ async function seedDatabase() {
         layout: {
           columns: 12, rows: 8, gap: '10px',
           areas: {
-            header: { row: [1, 1], column: [1, 12] },
-            queue: { row: [2, 6], column: [1, 8] },
-            info: { row: [2, 6], column: [9, 12] },
-            ticker: { row: [7, 7], column: [1, 12] },
-            footer: { row: [8, 8], column: [1, 12] }
+            header: { row: [1, 2], column: [1, 13] },
+            queue: { row: [2, 7], column: [1, 9] },
+            info: { row: [2, 7], column: [9, 13] },
+            ticker: { row: [7, 8], column: [1, 13] },
+            footer: { row: [8, 9], column: [1, 13] }
           }
         },
         widgets: [
@@ -71,7 +71,7 @@ async function seedDatabase() {
             }
           },
           {
-            id: 'main-queue', type: 'queue', area: 'queue', channel: 'main',
+            id: 'main-queue', type: 'queue', area: 'queue', channel: 'calls',
             config: {
               showTicket: true,
               showContent: true,
@@ -93,7 +93,7 @@ async function seedDatabase() {
             }
           },
           {
-            id: 'news-ticker', type: 'ticker', area: 'ticker', channel: 'news',
+            id: 'news-ticker', type: 'ticker', area: 'ticker', channel: 'announcements',
             config: {
               initialText: 'Mantenga la distancia de seguridad • Use mascarilla en zonas comunes • Respete los turnos de espera',
               scrollSpeed: 50
@@ -144,22 +144,28 @@ async function seedDatabase() {
         layout: {
           columns: 12, rows: 8, gap: '15px',
           areas: {
-            header: { row: [1, 1], column: [1, 12] },
-            priority: { row: [2, 3], column: [1, 12] },
-            queue: { row: [4, 7], column: [1, 12] },
-            footer: { row: [8, 8], column: [1, 12] }
+            header: { row: [1, 2], column: [1, 10] },
+            clock: { row: [1, 2], column: [10, 13] },
+            priority: { row: [2, 8], column: [1, 7] },
+            queue: { row: [2, 8], column: [7, 13] },
+            footer: { row: [8, 9], column: [1, 13] }
           }
         },
         widgets: [
           {
             id: 'urgencias-header', type: 'logo', area: 'header',
             config: {
-              src: 'logo-hospital.png',
-              height: '60px'
+              src: 'logo-hospital.png'
             }
           },
           {
-            id: 'priority-queue', type: 'queue', area: 'priority', channel: 'priority',
+            id: 'clock', type: 'clock', area: 'clock',
+            config: {
+              timeFormat: 'HH:mm', dateFormat: 'MM/DD/YYYY'
+            }
+          },
+          {
+            id: 'priority-queue', type: 'queue', area: 'priority', channel: 'emergency',
             config: {
               showTicket: true,
               showContent: true,
@@ -178,7 +184,7 @@ async function seedDatabase() {
             }
           },
           {
-            id: 'normal-queue', type: 'queue', area: 'queue', channel: 'main',
+            id: 'normal-queue', type: 'queue', area: 'queue', channel: 'calls',
             config: {
               maxVisible: 4,
               showTicket: true,
@@ -186,7 +192,7 @@ async function seedDatabase() {
             }
           },
           {
-            id: 'urgencias-info', type: 'ticker', area: 'footer', channel: 'emergency',
+            id: 'urgencias-info', type: 'ticker', area: 'footer', channel: 'announcements',
             config: {
               initialText: 'URGENCIAS 24H • Respete la prioridad del triaje',
               scrollSpeed: 40

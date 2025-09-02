@@ -56,7 +56,7 @@ class TemplateService  extends EventEmitter {
         layout: {
           columns: 12, rows: 8, gap: '10px',
           areas: {
-            main: { row: [1, 8], column: [1, 12] }
+            main: { row: [1, 9], column: [1, 13] }
           }
         },
         widgets: [
@@ -173,7 +173,7 @@ class TemplateService  extends EventEmitter {
       description: `Cloned from ${source.name}`,
       orientation: source.orientation,
       targetSize: source.targetSize,
-      definition: JSON.parse(JSON.stringify(source.definition)), // 'Deep copy'
+      definition: JSON.parse(JSON.stringify(source.definition)), // 'deep copy'
       isActive: source.isActive
     });
     

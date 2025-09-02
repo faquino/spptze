@@ -79,7 +79,7 @@ class TemplateRenderer {
         layout: {
           columns: 12, rows: 8, gap: '10px',
           areas: {
-            main: { row: [1, 8], column: [1, 12] }
+            main: { row: [1, 9], column: [1, 13] }
           }
         },
         widgets: [
@@ -167,8 +167,8 @@ class TemplateRenderer {
     for (const [areaName, areaConfig] of Object.entries(areas)) {
       css += `
         .area-${areaName} {
-          grid-row: ${areaConfig.row[0]} / ${areaConfig.row[1] + 1};
-          grid-column: ${areaConfig.column[0]} / ${areaConfig.column[1] + 1};
+          grid-row: ${areaConfig.row[0]} / ${areaConfig.row[1]};
+          grid-column: ${areaConfig.column[0]} / ${areaConfig.column[1]};
         }
       `;
     }
