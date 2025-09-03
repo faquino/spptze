@@ -155,7 +155,7 @@ async function seedDatabase() {
           {
             id: 'urgencias-header', type: 'logo', area: 'header',
             config: {
-              src: 'logo-hospital.png'
+              src: 'brand-logo.svg'
             }
           },
           {
@@ -209,7 +209,7 @@ async function seedDatabase() {
           },
           typography: {
             fontFamily: 'Arial, sans-serif',
-            baseFontSize: '20px'
+            baseFontSize: '2vh'
           }
         }
       }

@@ -9,13 +9,14 @@ Licensed under the MIT License - see LICENSE file for details
 <head>
   <meta charset="UTF-8">
   <meta name="description" content="SPPTZE - Sistema de presentación para pantallas de turno en zonas de espera">
-  <meta name="author" content="Francisco José Aquino García">  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SPPTZE Display - <%= template.name %></title>
+  <meta name="author" content="Francisco José Aquino García">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPPTZE-player - <%= template.name %></title>
   <link rel="icon" type="image/x-icon" href="/web/favicon.ico">
   <link rel="stylesheet" href="/web/3p/fontawesome/css/fontawesome.min.css">
   <link rel="stylesheet" href="/web/3p/fontawesome/css/solid.min.css">
   <style type="text/css">
-    /* Reglas de estilo base */
+    /* Reglas de estilo base, 'resets' */
     * {
       margin: 0;
       padding: 0;
@@ -25,6 +26,10 @@ Licensed under the MIT License - see LICENSE file for details
     /* Tema CSS de la plantilla */
     <%= helpers.getThemeCSS(theme) %>
     
+    div.area {
+      overflow: hidden;
+    }
+
     /* CSS Grid layout CSS */
     <%= helpers.getGridCSS(layout) %>
     
@@ -225,12 +230,15 @@ Licensed under the MIT License - see LICENSE file for details
     const ws = new WebSocket(`ws://${window.location.host.split(':')[0]}:<%= wsPort %>`);
     const messageQueues = new Map();
     const widgets = new Map();
-    
+    const datos = {
+      llamando: false
+    };
+
     // Initializar datos de los widgets
     <% for (const widget of widgets) { %>
       widgets.set('<%= widget.id %>', {
         type: '<%= widget.type %>',
-        channel: '<%= widget.channel || "main" %>',
+        channel: '<%= widget.channel || "calls" %>',
         config: <%- JSON.stringify(widget.config || {}) %>,
         element: null
       });
@@ -274,8 +282,8 @@ Licensed under the MIT License - see LICENSE file for details
     };
     
     // Manejador de mensajes WebSocket
-    function handleMessage(data) {
-      switch (data.type) {
+    function handleMessage(message) {
+      /*switch (data.type) {
         case 'message':
           handleQueueMessage(data.payload);
           break;
@@ -288,12 +296,34 @@ Licensed under the MIT License - see LICENSE file for details
         case 'connected':
           console.log('Connected as node:', data.nodeId);
           break;
+      }*/
+      datos.llamando = true;
+      if (message.retract) {
+        handleRetraction(message);
+      } else {
+        handleQueueMessage(message);
       }
+/*
+      // ---- reproducir avisos y/o mensaje de voz
+      const playList = initPlayList();
+      if (message.ttsMIME && message.ttsB64) {
+        playList.push({ audioB64: message.ttsB64, audioMIME: message.ttsMIME });
+      }
+      playAudio(playList).then(function (result) {
+        if (datos.pendientes.length > 0) {
+          setTimeout(() => {
+            procesaMensaje(datos.pendientes.shift());
+          }, 50);
+        } else {
+          datos.llamando = false;
+        }
+      });
+*/
     }
 
     // Mensaje de llamada
     function handleQueueMessage(message) {
-      const channel = message.channel || 'main';
+      const channel = message.channel || 'calls';
       
       // Initializar cola de mensajes si es necesario
       if (!messageQueues.has(channel)) {
@@ -318,7 +348,7 @@ Licensed under the MIT License - see LICENSE file for details
       });
       
       // Reproducir sonido de notificación
-      if (channel === 'main' && message.ticket) {
+      if (channel === 'calls' && message.ticket) {
         playNotificationSound();
       }
     }
