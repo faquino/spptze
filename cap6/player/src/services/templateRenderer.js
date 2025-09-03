@@ -165,10 +165,19 @@ class TemplateRenderer {
 
     // Generar el CSS para cada area del grid
     for (const [areaName, areaConfig] of Object.entries(areas)) {
+      const rules = [
+        `grid-row: ${areaConfig.row[0]} / ${areaConfig.row[1]}`,
+        `grid-column: ${areaConfig.column[0]} / ${areaConfig.column[1]}`
+      ];
+      if (areaConfig.zIndex) rules.push(`z-index: ${areaConfig.zIndex}`);
+
       css += `
-        .area-${areaName} {
-          grid-row: ${areaConfig.row[0]} / ${areaConfig.row[1]};
-          grid-column: ${areaConfig.column[0]} / ${areaConfig.column[1]};
+        .area-${areaName} {`;
+      for (const rule of rules) {
+        css += `
+          ${rule};`;
+      }
+      css += `  
         }
       `;
     }

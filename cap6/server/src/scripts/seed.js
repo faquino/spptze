@@ -145,7 +145,7 @@ async function seedDatabase() {
           columns: 12, rows: 8, gap: '15px',
           areas: {
             header: { row: [1, 2], column: [1, 10] },
-            clock: { row: [1, 2], column: [10, 13] },
+            clock: { row: [1, 2], column: [10, 13], zIndex: 10 },
             priority: { row: [2, 8], column: [1, 7] },
             queue: { row: [2, 8], column: [7, 13] },
             footer: { row: [8, 9], column: [1, 13] }
