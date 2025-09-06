@@ -257,7 +257,7 @@ const Location = (sequelize) => {
     }
   });
 
-  //TODO: Debería tenerse en cuenta DisplayTemplate.isActive
+  //TODO: Debería tenerse en cuenta DisplayTemplate.active
   model.prototype.getEffectiveTemplate = async function () {
     if (this.templateId) return await sequelize.models.DisplayTemplate.findByPk(this.templateId);
     if (this.parentId) {
@@ -351,7 +351,7 @@ const DisplayNode = (sequelize) => {
   // Devuelve un array con las plantillas más específicas (a mayor profundidad en la jerarquía) aplicables al nodo
   // según sus ubicaciones asociadas. El código cliente puede decidir qué hacer si la longitud del array > 1,
   // aunque lo más habitual será usar el primer elemento.
-  // TODO Consideraciones relativas a DisplayTemplate.isActive
+  // TODO Consideraciones relativas a DisplayTemplate.active
   model.prototype.getEffectiveTemplates = async function () {
     if (this.templateOverrideId) // Si hay template override se usa esa plantilla
       return [
@@ -668,7 +668,7 @@ const DisplayTemplate = (sequelize) => {
       validate: { min: 32, max: 100 },
       comment: 'Tamaño mínimo recomendado para el televisor (diagonal en pulgadas)'
     },
-    isDirty: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,
+    dirty: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,
       comment: 'Recordatorio de que se ha modificado algún aspecto y es necesario redistribuir la plantilla.'
     },
     updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, allowNull: false },
@@ -699,14 +699,15 @@ const DisplayTemplate = (sequelize) => {
       },
       comment: 'JSON que define tema, layout, areas, widgets etc.'
     },
-    isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true,
+    active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true,
       comment: 'Decide si se tiene en cuenta a la hora de determinar la plantilla efectiva para una ubicación'
     }
   }, {
     tableName: 'display_templates',
     timestamps: false,
     indexes: [ { fields: ['name'], unique: true },
-               { fields: ['isActive']}],
+               { fields: ['active'] },
+               { fields: ['dirty'] } ],
     comment: 'Plantillas que definen apariencia y comportamiento de la presentación en los nodos de visualización'
   });
   return model;

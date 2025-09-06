@@ -13,6 +13,10 @@ const AdminJS = require('adminjs');
 const AdminJSExpress = require('@adminjs/express');
 const AdminJSSequelize = require('@adminjs/sequelize');
 
+// Contenedores para el menú de navegación
+// La selección de iconos disponibles es mucho más reducida que la que sale en:
+// https://storybook.adminjs.co/?path=/docs/designsystem-atoms-icon--docs
+// TODO: Migrar proyecto CommonJS --> ESM
 const structureParent = { name: 'Estructura', icon: 'Layers' };
 const integrationParent = { name: 'Integración', icon: 'User' };
 const presentationParent = { name: 'Presentación', icon: 'Airplay' };
@@ -59,6 +63,7 @@ function setupAdmin(app, sequelize) {
           resource: sequelize.models.ExternalSystem,
           options: {
             parent: integrationParent,
+            listProperties: ['id', 'name', 'description', 'defaultChannel', 'active'],
             properties: {
               apiKey: {
                 type: 'password',
@@ -104,11 +109,12 @@ function setupAdmin(app, sequelize) {
           resource: sequelize.models.DisplayTemplate,
           options: {
             parent: presentationParent,
+            listProperties: ['id', 'name', 'description', 'orientation', 'targetSize', 'active', 'dirty'],
             properties: {
               definition: {
                 type: 'textarea',
                 isVisible: true,
-                props: { rows: 20 }
+                props: { rows: 15 }
               }
             },
             actions: {
@@ -127,7 +133,7 @@ function setupAdmin(app, sequelize) {
               },
               edit: {
                 before: async (request, context) => {
-                  // Para POST: convertir string a JSON antes de guardar
+                  // Para POST: convertir de vuelta string a JSON antes de guardar
                   if (request.method === 'post' && request.payload?.definition) {
                     try {
                       request.payload.definition = JSON.parse(request.payload.definition);
@@ -152,7 +158,7 @@ function setupAdmin(app, sequelize) {
                 }
               },
               show: {
-                after: async (response) => {
+                before: async (response) => {
                   if (response.record?.params?.definition) {
                     // Si es un objeto, convertirlo a string formateada
                     const def = response.record.params.definition;
@@ -220,7 +226,6 @@ function setupAdmin(app, sequelize) {
     const router = AdminJSExpress.buildRouter(adminJs);
     app.use(adminJs.options.rootPath, router);
     return adminJs;
-
   } catch (error) {
     console.error('Error en AdminJS:', error);
     return null;

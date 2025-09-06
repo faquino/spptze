@@ -87,7 +87,7 @@ class TemplateService  extends EventEmitter {
   async updateTemplate(templateId, templateData) {
     const template = await DisplayTemplate.findByPk(templateId);
     if (!template) throw new Error(`Template ${templateId} not found`);
-    templateData.isDirty = true;
+    templateData.dirty = true;
     await template.update(templateData);
   }
 
@@ -174,7 +174,7 @@ class TemplateService  extends EventEmitter {
       orientation: source.orientation,
       targetSize: source.targetSize,
       definition: JSON.parse(JSON.stringify(source.definition)), // 'deep copy'
-      isActive: source.isActive
+      active: source.active
     });
     
     return newTemplate;
@@ -257,7 +257,7 @@ class TemplateService  extends EventEmitter {
     if (!template) throw new Error(`Template ${templateId} not found`);
     
     template.updatedAt = new Date();
-    template.isDirty = false;
+    template.dirty = false;
     await template.save();
     
     console.log(`Template ${templateId} marked as modified`);

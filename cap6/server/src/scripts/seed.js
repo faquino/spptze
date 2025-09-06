@@ -49,7 +49,7 @@ async function seedDatabase() {
       description: 'Plantilla por defecto del sistema',
       orientation: 'landscape',
       targetSize: 43,
-      isActive: true,
+      active: true,
       definition: {
         layout: {
           columns: 12, rows: 8, gap: '10px',
@@ -139,7 +139,7 @@ async function seedDatabase() {
       description: 'Plantilla para el área de urgencias con prioridad visual',
       orientation: 'landscape',
       targetSize: 50,
-      isActive: true,
+      active: true,
       definition: {
         layout: {
           columns: 12, rows: 8, gap: '15px',
