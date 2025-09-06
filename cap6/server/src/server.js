@@ -13,22 +13,27 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const OpenApiValidator = require('express-openapi-validator');
 
 // Modelos y configuración BD
 const { testConnection, syncDatabase } = require('./config/database');
+const { sequelize } = require('./models');
 
 const MQTTService = require('./services/mqttService');
 const { swaggerOptions } = require('./config/swagger.js');
 const ttsService = process.env.SPEACHES_URL ? require('./services/ttsService') : null;
-const assetsDir = process.env.ASSETS_DIR || path.join(__dirname, '..', 'public');
+const publicDir = path.join(__dirname, '..', 'public');
+const assetsDir = process.env.ASSETS_DIR || publicDir;
 
 const app = express();
 
 
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
+const swaggerSpec = swaggerJSDoc(swaggerOptions);
+
+const enableAdmin = process.env.ENABLE_ADMIN === 'true' 
+                    || (process.env.NODE_ENV === 'development' && !(process.env.ENABLE_ADMIN === 'false'));
 
 // INTERFAZ SWAGGERUI
 // =============================================================
@@ -51,9 +56,13 @@ const node_env = process.env.NODE_ENV || 'production';
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 // Para servir los assets de las plantillas de presentación
-app.use('/assets',
+app.use('/',
         cors({ origin: '*', methods: ['GET'], credentials: false }),
-        express.static(assetsDir));
+        express.static(publicDir));
+if (assetsDir !== publicDir)
+  app.use('/assets',
+          cors({ origin: '*', methods: ['GET'], credentials: false }),
+          express.static(assetsDir));
 
 // Logging
 app.use((req, res, next) => {
@@ -77,6 +86,7 @@ app.use('/api/v1', apiRoutes);
 
 // RUTAS WEB
 // =============================================================
+/*
 app.get('/', (req, res) => {
   res.json({
     message: 'SPPTZE - Sistema de Presentación para Pantallas de Turno',
@@ -86,10 +96,11 @@ app.get('/', (req, res) => {
     }
   });
 });
-
+*/
 
 // MANEJO DE ERRORES
 // =============================================================
+/*
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
@@ -105,7 +116,7 @@ app.use((error, req, res, next) => {
   console.error('Server error:', error);
   res.status(500).json({ error: 'Internal server error' });
 });
-
+*/
 
 // INICIALIZACIÓN DE SERVICIOS
 // =============================================================
@@ -132,6 +143,11 @@ async function initializeServices() {
       mqttOpts.password = process.env.MQTT_PASS;
     }
     await MQTTService.connect(mqttBrokerUrl, mqttOpts);
+
+    if (enableAdmin) {
+      const setupAdminJS = require('./adminjs/setup.js');
+      await setupAdminJS(app, sequelize);
+    }
 
     const templateService = require('./services/templateService');
     templateService.initialize();
@@ -184,14 +200,38 @@ async function startServer() {
     //
     await initializeServices();
 
+    // MANEJO DE ERRORES
+    // =============================================================
+    app.use((req, res) => {
+      res.status(404).json({ error: 'Endpoint not found' });
+    });
+    
+    app.use((error, req, res, next) => {
+      if (error.status && error.errors) {
+        return res.status(error.status).json({
+          error: 'Validation failed',
+          details: error.errors
+        });
+      }
+      console.error('Server error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    });
+    
     const PORT = process.env.PORT || 3000;
     const HOST = process.env.HOST || 'localhost';
     app.listen(PORT, HOST, () => {
       console.log('SPPTZE Server started successfully');
       console.log('-'.repeat(60));
       console.log(`API Base:          http://${HOST}:${PORT}/api/v1`);
-      console.log(`API Documentación: http://${HOST}:${PORT}/api/v1/docs`);
+      console.log(`API docs:          http://${HOST}:${PORT}/api/v1/docs`);
       console.log(`OpenAPI Spec.:     http://${HOST}:${PORT}/api/v1/openapi.json`);
+      if (enableAdmin) {
+        console.log(`AdminJS panel:     http://${HOST}:${PORT}/admin`);
+      }
+      if (ttsService?.available) {
+        console.log(`Speaches panel:    ${process.env.SPEACHES_URL}`);
+        console.log(`Speaches API docs: ${process.env.SPEACHES_URL}/docs`);
+      }
       console.log('-'.repeat(60));
     });
 

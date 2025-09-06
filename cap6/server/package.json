@@ -23,10 +23,14 @@
   "author": "Francisco José Aquino García",
   "license": "MIT",
   "dependencies": {
+    "@adminjs/express": "^5.1.0",
+    "@adminjs/sequelize": "^3.0.0",
+    "adminjs": "^6.8.7",
     "axios": "^1.11.0",
     "commander": "^14.0.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "express-formidable": "^1.2.0",
     "express-openapi-validator": "^5.5.7",
     "express-rate-limit": "^7.5.0",
     "helmet": "^7.1.0",
@@ -42,10 +46,10 @@
     "nodemon": "^3.0.2"
   },
   "engines": {
-    "node": ">=22.16.0"
+    "node": ">=20.19.0"
   },
   "volta": {
-    "node": "22.16.0",
-    "npm": "11.4.2"
+    "node": "22.19.0",
+    "npm": "11.6.0"
   }
 }

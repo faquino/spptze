@@ -95,6 +95,7 @@ const resolverUtils = {
 
 // Exportar modelos y utilidades
 module.exports = {
+  sequelize,
   ...models,
   resolverUtils
 };
