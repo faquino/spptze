@@ -1,6 +1,6 @@
 # Diccionario de Datos - Base de Datos SPPTZE
 
-*Generado el 2/9/2025, 17:15:21 por generate-data-dict.js a partir del modelo Sequelize*
+*Generado el 6/9/2025, 21:07:05 por generate-data-dict.js a partir del modelo Sequelize*
 
 ## Índice de Tablas
 
@@ -76,15 +76,16 @@ Plantillas que definen apariencia y comportamiento de la presentación en los no
 | `description` | TEXT | - | - | - |
 | `orientation` [ℹ️](## "Orientación de pantalla de la plantilla") | VARCHAR(10) | - | "landscape" | NOT NULL, Valores: [["landscape","portrait"]] |
 | `targetSize` [ℹ️](## "Tamaño mínimo recomendado para el televisor (diagonal en pulgadas)") | INTEGER | - | - | Mínimo: 32, Máximo: 100 |
-| `isDirty` [ℹ️](## "Recordatorio de que se ha modificado algún aspecto y es necesario redistribuir la plantilla.") | BOOLEAN | - | false | NOT NULL |
+| `dirty` [ℹ️](## "Recordatorio de que se ha modificado algún aspecto y es necesario redistribuir la plantilla.") | BOOLEAN | - | false | NOT NULL |
 | `updatedAt` | DATE | - | undefined | NOT NULL |
 | `definition` [ℹ️](## "JSON que define tema, layout, areas, widgets etc.") | JSONTYPE | - | {} | NOT NULL, isValidDefinition (custom) |
-| `isActive` [ℹ️](## "Decide si se tiene en cuenta a la hora de determinar la plantilla efectiva para una ubicación") | BOOLEAN | - | true | NOT NULL |
+| `active` [ℹ️](## "Decide si se tiene en cuenta a la hora de determinar la plantilla efectiva para una ubicación") | BOOLEAN | - | true | NOT NULL |
 
 #### Índices
 
 - **Índice 1:** name (UNIQUE)
-- **Índice 2:** isActive
+- **Índice 2:** active
+- **Índice 3:** dirty
 
 ---
 
