@@ -16,7 +16,7 @@ const pkgInfoVersion = require('../package.json').version;  // información del 
 const WebSocket = require('ws');
 const MQTTService = require('./services/mqttService');  // Cliente MQTT
 const CECControlService = require('./services/cecControl'); // Control CEC
-const wsPort = process.env.WEBSOCKET_PORT || 80;
+const wsPort = process.env.WEBSOCKET_PORT || 3080;
 const templateRenderer = require('./services/templateRenderer');
 
 
