@@ -26,7 +26,7 @@ class NodeController {
       const now = new Date();
       const nodesWithStatus = nodes.map(node => {
         const lastSeenDiff = node.lastSeen ? now - new Date(node.lastSeen) : null;
-        const isOnline = lastSeenDiff ? lastSeenDiff < 30000 : false; // 30 segundos
+        const isOnline = lastSeenDiff ? (lastSeenDiff < ((process.env.HEARTBEAT_INTERVAL || 60) * 1000 * 2)) : false;
         
         return {
           id: node.id,
