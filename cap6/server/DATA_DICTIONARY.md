@@ -1,6 +1,6 @@
 # Diccionario de Datos - Base de Datos SPPTZE
 
-*Generado el 6/9/2025, 21:07:05 por generate-data-dict.js a partir del modelo Sequelize*
+*Generado el 8/9/2025, 10:24:40 por generate-data-dict.js a partir del modelo Sequelize*
 
 ## Índice de Tablas
 
@@ -40,7 +40,7 @@ Nodos de visualización inventariados en el sistema
 | `hostname` | VARCHAR(255) | - | - | - |
 | `hardwareModel` | VARCHAR(32) | - | - | - |
 | `active` | BOOLEAN | - | true | - |
-| `lastSeen` | DATE | - | - | - |
+| `lastSeen` [ℹ️](## "Timestamp de la última recepción de un heartbeat/ACK procedente del nodo") | DATE | - | - | - |
 | `templateOverrideId` [ℹ️](## "Permite anular la lógica de asignación de plantilla basada en la jerarquía de ubicaciones") | VARCHAR(16) | FK → `display_templates.id` | - | - |
 | `createdAt` | DATE | - | undefined | - |
 

@@ -327,7 +327,9 @@ const DisplayNode = (sequelize) => {
     //TODO: mejor en una tabla separada de modelos de plataformas hardware
     hardwareModel: { type: DataTypes.STRING(32), allowNull: true, field: 'hardware_model' },
     active: { type: DataTypes.BOOLEAN, defaultValue: true },
-    lastSeen: { type: DataTypes.DATE, allowNull: true, field: 'last_seen' },
+    lastSeen: { type: DataTypes.DATE, allowNull: true, field: 'last_seen',
+      comment: 'Timestamp de la última recepción de un heartbeat/ACK procedente del nodo'
+     },
     templateOverrideId: { type: DataTypes.STRING(16), allowNull: true, field: 'template_override_id',
       comment: 'Permite anular la lógica de asignación de plantilla basada en la jerarquía de ubicaciones',
       references: { model: 'display_templates', key: 'id' },
