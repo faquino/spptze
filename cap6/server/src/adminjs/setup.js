@@ -267,7 +267,9 @@ function setupAdmin(app, sequelize) {
       }
     });
 
+    // Antes de este punto podría añadirse middleware para aceptar solo ciertas IPs, p.ej. ¿ADMIN_IP_WHITELIST?
     app.use(adminJs.options.rootPath, router);
+
     return adminJs;
   } catch (error) {
     console.error('Error en AdminJS:', error);
