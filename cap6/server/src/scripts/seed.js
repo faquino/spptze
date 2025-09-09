@@ -222,7 +222,6 @@ async function seedDatabase() {
         name: 'Sistema HIS SIHGA',
         description: 'Hospital Information System - SIHGA/HPHIS',
         apiKey: 'demo-api-key-hospital-123',
-        allowedIPs: ['127.0.0.1', '::1'],
         defaultTargetType: 'S', // S=service_point
         defaultChannel: 'calls',
         messageFormat: { ticket: 'string', agenda: 'string', patient: 'string' },
@@ -236,6 +235,7 @@ async function seedDatabase() {
         name: 'Panel Administración',
         description: 'Interfaz administrativa interna',
         apiKey: 'demo-key-admin-456',
+        allowedIPs: ['127.0.0.1', '::1'],
         defaultTargetType: 'L', // L=location
         defaultChannel: 'info',
         messageFormat: { type: 'string', target_location: 'string', content: 'string' },
@@ -285,11 +285,22 @@ async function seedDatabase() {
     // Nodos de visualización
     await DisplayNode.bulkCreate([
       {
-        id: 'NODE_CARDIO',
-        name: 'Pantalla Sala Espera Cardiología',
-        description: 'Raspberry Pi en sala de espera de cardiología',
+        id: 'NODE_CARDIO_PC',
+        name: 'PC Pruebas',
+        description: 'Sala de espera de cardiología',
         serialNumber: 'RPI4B2024001',
         macAddress: 'DCA632123456',
+        hostname: 'pc-cardio-01',
+        hardwareModel: 'ThinkPad',
+        active: 'true',
+        templateOverrideId: null
+      },
+      {
+        id: 'NODE_CARDIO_PI',
+        name: 'Pantalla Sala Espera Cardiología',
+        description: 'Raspberry Pi en sala de espera de cardiología',
+        serialNumber: '1000000076870f88',
+        macAddress: 'D83ADD3D233E',
         hostname: 'rpi-cardio-01',
         hardwareModel: 'Raspberry Pi 4B',
         active: 'true',
@@ -299,7 +310,8 @@ async function seedDatabase() {
 
     // Mapeo de nodos a ubicaciones
     await NodeLocationMapping.bulkCreate([
-      { nodeId: 'NODE_CARDIO', locationId: 'CONSULTA_3', showChildren: false, active: true }
+      { nodeId: 'NODE_CARDIO_PC', locationId: 'CONSULTA_3', showChildren: false, active: true },
+      { nodeId: 'NODE_CARDIO_PI', locationId: 'CONSULTA_3', showChildren: false, active: true }
     ]);
 
     console.log('Datos de ejemplo insertados correctamente');
@@ -361,21 +373,22 @@ async function testDatabase() {
     }
 
     // Probar método getEffectiveTemplate
-    const node = await DisplayNode.findByPk('NODE_CARDIO', {
+    const test_node = 'NODE_CARDIO';
+    const node = await DisplayNode.findByPk(test_node, {
       include: [{model: Location}]
     });
-    console.log('Nodo:', node?.name);
+    console.log('Nodo:', node?.id);
     console.log('Estado activo:', node?.active);
     console.log('Ubicaciones asignadas:', node?.Locations?.map(l => l.name));
     if (node) {
       console.log('\ Probando método getEffectiveTemplate...');
       const templates = await node.getEffectiveTemplates();
       if (templates.length === 0) {
-        console.log('Plantillas efectivas para NODE_CARDIO: Ninguna');
+        console.log(`Plantillas efectivas para ${test_node}: Ninguna`);
       } else if (templates.length === 1) {
-        console.log('Plantilla efectiva para NODE_CARDIO:', templates[0].name);
+        console.log(`Plantilla efectiva para ${test_node}: ${templates[0].name}`);
       } else {
-        console.log(`Conflicto de plantillas para NODE_CARDIO (${templates.length} plantillas en misma profundidad):`);
+        console.log(`Conflicto de plantillas para ${test_node} (${templates.length} plantillas en misma profundidad):`);
         templates.forEach(t => console.log(`  - ${t.name} (${t.id})`));
       }
     }

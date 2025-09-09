@@ -11,6 +11,13 @@
 // =============================================================
 const path = require('path');
 
+// OJO: Más o menos como en /cap6/server/src/server.js
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || 'localhost';
+const allIFs = HOST === '0.0.0.0';
+const displayHost = allIFs ? 'localhost' : HOST;
+
+
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
@@ -25,13 +32,9 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'http://localhost:3000/api/v1',
-        description: 'Servidor de desarrollo'
-      }/*,
-      {
-        url: 'https://spptze-server.local/api/v1', 
-        description: 'Servidor de pruebas (ejemplo)'
-      }*/
+        url: `http://${displayHost}:${PORT}/api/v1`,
+        description: `Servidor de ${process.env.NODE_ENV === 'development' ? 'desarrollo' : 'PRODUCCIÓN'}`
+      }
     ],
     components: {
       securitySchemes: {
@@ -39,7 +42,7 @@ const swaggerOptions = {
           type: 'apiKey',
           in: 'header',
           name: 'X-API-Key',
-          description: `Clave API para autenticación.${process.env.NODE_ENV === 'development' ? 'Claves de demo: demo-key-hospital-123, demo-key-admin-456' : ''}`
+          description: `Clave API para autenticación.${process.env.NODE_ENV === 'development' ? 'Claves de demo: demo-api-key-hospital-123, demo-key-admin-456' : ''}`
         }
       },
       schemas: {

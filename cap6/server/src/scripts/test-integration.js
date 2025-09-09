@@ -12,7 +12,10 @@
 const { testConnection } = require('../config/database');
 const { ExternalSystem, ServicePoint, Message, resolverUtils } = require('../models');
 
-const API_BASE = 'http://localhost:3000/api/v1';
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || 'localhost';
+
+const API_BASE = `http://${HOST}:${PORT}/api/v1`;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function sleep(ms) {
@@ -102,7 +105,7 @@ async function testAPIIntegration() {
     if (!system) throw new Error('No hay sistemas activos en BD');
     
     apiKey = system.apiKey;
-    console.log(`API key obtenida: ${apiKey.substring(0, 8)} (Sistema: ${system.id})`);
+    console.log(`API key obtenida: '${apiKey.substring(0, 8)}...' (Sistema: ${system.id})`);
     
     // 2. Probar autenticación
     console.log('\n·Probando autenticación...');
@@ -275,6 +278,7 @@ async function testRepeatFlow() {
 
 async function runAllTests() {
   console.log('SPPTZE - Pruebas de Integración');
+  console.log('API base:', API_BASE);
   console.log('='.repeat(60));
 
   const results = {
@@ -331,5 +335,3 @@ if (require.main === module) {
     process.exit(1);
   });
 }
-
-module.exports = { testDatabaseIntegration, testAPIIntegration, testEndToEndFlow };
