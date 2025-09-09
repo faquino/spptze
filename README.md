@@ -18,7 +18,7 @@ spptze/
 ├── cap5/      # Capítulo 5: Iteraciones 3 y 4
 |              #  - Visualización básica
 |              #  - Control CEC de dispositivos
-└── cap6/      # Capítulo 6: Iteraciones 5, 6 y 7 (en progreso)
+└── cap6/      # Capítulo 6: Iteraciones 5 y 6
 |              #  - Plantillas personalizables de presentación
 |              #  - Llamadas de turno con locuciones de voz
 |              #  - Panel de administración AdminJS
