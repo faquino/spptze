@@ -7,7 +7,7 @@
     "start": "node --env-file=.env ./src/server.js",
     "dev": "nodemon --env-file=.env ./src/server.js",
     "test": "node --env-file=.env ./src/scripts/test-integration.js",
-    "db:seed": "node --env-file=.env ./src/scripts/seed.js",
+    "db:seed-db": "node --env-file=.env ./src/scripts/seed-db.js",
     "db:install-driver": "node --env-file=.env ./src/scripts/install-db-driver.js",
     "db:generate-data-dict": "node ./src/scripts/generate-data-dict.js"
   },
