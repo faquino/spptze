@@ -14,10 +14,17 @@ La API de Speaches permite consultar los modelos instalados y los disponibles me
 
 _Endpoints_ de documentación de la API de Speaches:
 - `<SPEACHES_URL>/openapi.json` (esquema OpenAPI)
-- `<SPEACHES_URL>/docs` (SwaggerUI)
-- `<SPEACHES_URL>/redoc` (ReDoc)
+- `<SPEACHES_URL>/docs` (interfaz SwaggerUI)
+- `<SPEACHES_URL>/redoc` (interfaz ReDoc)
 
 A pesar de que SPPTZE use solo los modelos Piper, la ventaja de usar Speaches desde SPPTZE está en que permite acceder a todos estos modelos con una API uniforme y un solo contenedor, mientras que p.ej. con [Wyoming Piper](https://github.com/rhasspy/wyoming-piper) hubiese requerido un contenedor independiente para cada modelo.
 
+## Uso
+Para iniciar el servidor Speaches:
+   ```bash
+   docker compose -f speaches.yml up
+   ```
+
 ## Tecnologías validadas
 - **Texto a voz:** Speaches
+
