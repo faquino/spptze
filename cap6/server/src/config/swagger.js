@@ -39,7 +39,7 @@ const swaggerOptions = {
           type: 'apiKey',
           in: 'header',
           name: 'X-API-Key',
-          description: 'Clave API para autenticación. Claves de demo: demo-key-hospital-123, demo-key-admin-456'
+          description: `Clave API para autenticación.${process.env.NODE_ENV === 'development' ? 'Claves de demo: demo-key-hospital-123, demo-key-admin-456' : ''}`
         }
       },
       schemas: {

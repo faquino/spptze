@@ -220,17 +220,22 @@ async function startServer() {
     const PORT = process.env.PORT || 3000;
     const HOST = process.env.HOST || 'localhost';
     app.listen(PORT, HOST, () => {
+      const allIFs = HOST === '0.0.0.0';
+      const displayHost = allIFs ? 'localhost' : HOST;
       console.log('SPPTZE Server started successfully');
       console.log('-'.repeat(60));
-      console.log(`API Base:          http://${HOST}:${PORT}/api/v1`);
-      console.log(`API docs:          http://${HOST}:${PORT}/api/v1/docs`);
-      console.log(`OpenAPI Spec.:     http://${HOST}:${PORT}/api/v1/openapi.json`);
+      console.log(`API Base:          http://${displayHost}:${PORT}/api/v1`);
+      console.log(`API docs:          http://${displayHost}:${PORT}/api/v1/docs`);
+      console.log(`OpenAPI Spec.:     http://${displayHost}:${PORT}/api/v1/openapi.json`);
       if (enableAdmin) {
-        console.log(`AdminJS panel:     http://${HOST}:${PORT}/admin`);
+        console.log(`AdminJS panel:     http://${displayHost}:${PORT}/admin`);
       }
       if (ttsService?.available) {
         console.log(`Speaches panel:    ${process.env.SPEACHES_URL}`);
         console.log(`Speaches API docs: ${process.env.SPEACHES_URL}/docs`);
+      }
+      if (allIFs) {
+        console.log('*Listening on all interfaces');
       }
       console.log('-'.repeat(60));
     });
