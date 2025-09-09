@@ -8,7 +8,7 @@ Sistema de presentación para pantallas de turno en zonas de espera
 ## Descripción
 Sistema de presentación de llamadas de turno para zonas de espera en organizaciones que gestionan flujos de personas como centros sanitarios y administraciones públicas. El sistema está diseñado para integrarse fácilmente con los sistemas de información existentes mediante una API REST documentada, reduciendo las barreras económicas y técnicas de adopción respecto a soluciones comerciales.
 
-## Estructura del repositorio
+## Estructura de este repositorio
 En cada subcarpeta se encuentran los entregables correspondientes al desarrollo según la planificación presentada en la memoria
 ```
 spptze/
@@ -18,10 +18,10 @@ spptze/
 ├── cap5/      # Capítulo 5: Iteraciones 3 y 4
 |              #  - Visualización básica
 |              #  - Control CEC de dispositivos
-└── cap6/      # Capítulo 6: Iteraciones 5 y 6
-|              #  - Plantillas personalizables de presentación
-|              #  - Llamadas de turno con locuciones de voz
-|              #  - Panel de administración AdminJS
+└─ cap6/       # Capítulo 6: Iteraciones 5 y 6
+               #  - Plantillas personalizables de presentación
+               #  - Llamadas de turno con locuciones de voz
+               #  - Panel de administración AdminJS
 ```
 
 ## Licencia

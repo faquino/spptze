@@ -9,7 +9,8 @@
     "test": "node --env-file=.env ./src/scripts/test-integration.js",
     "db:seed-db": "node --env-file=.env ./src/scripts/seed-db.js",
     "db:install-driver": "node --env-file=.env ./src/scripts/install-db-driver.js",
-    "db:generate-data-dict": "node ./src/scripts/generate-data-dict.js"
+    "db:generate-data-dict": "node ./src/scripts/generate-data-dict.js",
+    "admin:gen-config": "node ./src/scripts/gen-admin-config.js"
   },
   "keywords": [
     "spptze",
@@ -27,10 +28,10 @@
     "@adminjs/sequelize": "^3.0.0",
     "adminjs": "^6.8.7",
     "axios": "^1.11.0",
+    "bcryptjs": "^3.0.2",
     "commander": "^14.0.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "express-formidable": "^1.2.0",
     "express-openapi-validator": "^5.5.7",
     "express-rate-limit": "^7.5.0",
     "helmet": "^7.1.0",

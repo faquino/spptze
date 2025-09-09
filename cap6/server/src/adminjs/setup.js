@@ -9,12 +9,13 @@
 // SPPTZE - Configuración de AdminJS
 // cap6/server/src/admin/setup.js
 // =============================================================
+const bcrypt = require('bcryptjs');
 const AdminJS = require('adminjs');
 const AdminJSExpress = require('@adminjs/express');
 const AdminJSSequelize = require('@adminjs/sequelize');
 
 // Contenedores para el menú de navegación
-// La selección de iconos disponibles es mucho más reducida que la que sale en:
+// La selección de iconos disponibles en esta versión es mucho más reducida que la que sale en:
 // https://storybook.adminjs.co/?path=/docs/designsystem-atoms-icon--docs
 // TODO: Migrar proyecto CommonJS --> ESM
 const structureParent = { name: 'Estructura', icon: 'Layers' };
@@ -28,6 +29,18 @@ function setupAdmin(app, sequelize) {
   console.log('Configurando AdminJS v6...');
   
   try {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPass = process.env.ADMIN_PASS;
+    const cookiePass = process.env.ADMIN_COOKIE;
+    const sessionSecret = process.env.ADMIN_SECRET;
+
+    const errs = [];
+    if (!adminEmail) errs.push('Falta ADMIN_EMAIL');
+    if (!adminPass) errs.push('Falta ADMIN_PASS');
+    if (!cookiePass) errs.push('Falta ADMIN_COOKIE');
+    if (!sessionSecret) errs.push('Falta ADMIN_SECRET');
+    if (errs.length > 0) throw new Error(errs.join(', '));
+
     const adminJs = new AdminJS({
       databases: [sequelize],
       rootPath: '/admin',
@@ -223,7 +236,37 @@ function setupAdmin(app, sequelize) {
       }
     });
 
-    const router = AdminJSExpress.buildRouter(adminJs);
+//    const router = AdminJSExpress.buildRouter(adminJs);
+
+    // Construir router con autenticación
+    const router = AdminJSExpress.buildAuthenticatedRouter(adminJs, {
+      authenticate: async (email, password) => {
+        if (email === adminEmail) {
+          try {
+            const valid = await bcrypt.compare(password, adminPass);
+            if (valid) {
+              return { email, id: 1, title: 'Administrador' };
+            }
+          } catch (error) {
+            console.error('Error verificando contraseña:', error.message);
+          }
+        }
+        return null;
+      },
+      cookieName: 'adminjs',
+      cookiePassword: cookiePass
+    }, null, {
+      // Configuración de express-session
+      resave: false,
+      saveUninitialized: false,
+      secret: sessionSecret,
+      cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // HTTPS en producción
+        maxAge: 1000 * 60 * 60 * 24 // 24 horas
+      }
+    });
+
     app.use(adminJs.options.rootPath, router);
     return adminJs;
   } catch (error) {

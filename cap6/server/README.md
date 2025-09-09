@@ -88,6 +88,7 @@ Se incluye también un servidor Speaches en un contenedor aparte, ver `cap6/tts`
 - `npm run db:seed-db` - Crea el esquema de base de datos con datos de ejemplo. ⚠️**Eliminará el contenido existente en la base de datos**⚠️.
 - `npm run db:install-driver` - Instala los drivers de base de datos según ORM_DIALECT (`package.json` no incluye dependencias de drivers específicos)
 - `npm run db:generate-data-dict` - Genera el diccionario de datos `DATA_DICTIONARY.md` a partir de los modelos Sequelize
+- `npm rum admin:gen-config` - Utilidad para generar información de seguridad del panel AdminJS
 - `npm test` - Ejecuta pruebas de integración
 
 ## Endpoints principales
