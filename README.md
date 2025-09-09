@@ -19,6 +19,9 @@ spptze/
 |              #  - Visualización básica
 |              #  - Control CEC de dispositivos
 └── cap6/      # Capítulo 6: Iteraciones 5, 6 y 7 (en progreso)
+|              #  - Plantillas personalizables de presentación
+|              #  - Llamadas de turno con locuciones de voz
+|              #  - Panel de administración AdminJS
 ```
 
 ## Licencia

@@ -14,8 +14,8 @@ Código resultante de las iteraciones 3 y 4 en el desarrollo del sistema según 
 - Gestión remota de pantallas desde el servidor central
 
 ### Entregables
-- `cap5\player` - Nodo de visualización
-- `cap5\server` - Servidor central
+- `cap5/player` - Nodo de visualización
+- `cap5/server` - Servidor central
 
 ## Estructura de carpetas
 ```
