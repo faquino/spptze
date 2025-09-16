@@ -13,14 +13,16 @@ En cada subcarpeta se encuentran los entregables correspondientes al desarrollo 
 ```
 spptze/
 ├── cap4/      # Capítulo 4: Iteraciones 1 y 2
-|              #  - Análisis, especificación y arqutectura inicial
+|              #  - Análisis, especificación y arquitectura inicial
+|              #  - Modelo de datos
 |              #  - Prototipos iniciales
 ├── cap5/      # Capítulo 5: Iteraciones 3 y 4
+|              #  - Distribución MQTT
 |              #  - Visualización básica
 |              #  - Control CEC de dispositivos
-└─ cap6/       # Capítulo 6: Iteraciones 5 y 6
+└── cap6/      # Capítulo 6: Iteraciones 5 y 6
                #  - Plantillas personalizables de presentación
-               #  - Llamadas de turno con locuciones de voz
+               #  - Llamadas de turno con locuciones de voz via Speaches
                #  - Panel de administración AdminJS
 ```
 
