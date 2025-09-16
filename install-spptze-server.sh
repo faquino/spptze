@@ -22,7 +22,7 @@ sudo mkdir -p "$INSTALL_DIR"
 
 # Copiar archivos necesarios
 echo "Copiando archivos para spptze-server..."
-sudo cp -r "$CURRENT_DIR/cap6/server/"* "$INSTALL_DIR/"
+sudo cp -r "$CURRENT_DIR/cap6/server/." "$INSTALL_DIR/"
 sudo cp "$CURRENT_DIR/LICENSE" "$INSTALL_DIR/"
 
 # Ajustar permisos

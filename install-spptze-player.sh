@@ -22,7 +22,7 @@ mkdir -p "$INSTALL_DIR"
 
 # Copiar archivos necesarios
 echo "Copiando archivos para spptze-player..."
-cp -r "$CURRENT_DIR/cap6/player/"* "$INSTALL_DIR/"
+cp -r "$CURRENT_DIR/cap6/player/." "$INSTALL_DIR/"
 cp "$CURRENT_DIR/LICENSE" "$INSTALL_DIR/"
 
 echo ""
