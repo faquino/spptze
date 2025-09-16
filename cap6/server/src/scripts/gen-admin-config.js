@@ -37,9 +37,9 @@ program
     const cookieSecret = crypto.randomBytes(32).toString('hex');
     const sessionSecret = crypto.randomBytes(32).toString('hex');
 
-    console.log(`ADMIN_PASS="${hash}"`);
-    console.log(`ADMIN_COOKIE="${cookieSecret}"`);
-    console.log(`ADMIN_SECRET="${sessionSecret}"`);
+    console.log(`ADMIN_PASS='${hash}'`);
+    console.log(`ADMIN_COOKIE=${cookieSecret}`);
+    console.log(`ADMIN_SECRET=${sessionSecret}`);
     
   })
   .addHelpText('after', `
